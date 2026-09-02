@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Fontes Group</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            color: #1f2933;
+            background: #ffffff;
+            line-height: 1.6;
+        }
+
+        header {
+            background: #0b1f33;
+            color: white;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 25px;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        .hero {
+            min-height: 80vh;
+            background: linear-gradient(
+                rgba(11, 31, 51, 0.75),
+                rgba(11, 31, 51, 0.75)
+            );
+            display: flex;
+            align-items: center;
+            padding: 60px 8%;
+            color: white;
+        }
+
+        .hero-content {
+            max-width: 700px;
+        }
+
+        .hero h1 {
+            font-size: 52px;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 20px;
+            margin-bottom: 30px;
+        }
+
+        .button {
+            display: inline-block;
+            background: white;
+            color: #0b1f33;
+            padding: 14px 28px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        section {
+            padding: 70px 8%;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 45px;
+        }
+
+        .section-title h2 {
+            font-size: 34px;
+            color: #0b1f33;
+        }
+
+        .services {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .service {
+            padding: 30px;
+            border: 1px solid #e1e5e8;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .service h3 {
+            color: #0b1f33;
+            margin-bottom: 12px;
+        }
+
+        .about {
+            background: #f5f7f9;
+            text-align: center;
+        }
+
+        .about p {
+            max-width: 850px;
+            margin: auto;
+        }
+
+        .contact {
+            text-align: center;
+        }
+
+        footer {
+            background: #0b1f33;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        @media (max-width: 800px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            nav a {
+                margin: 0 8px;
+            }
+
+            .hero h1 {
+                font-size: 38px;
+            }
+
+            .services {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">NEXUS FONTES GROUP</div>
+
+        <nav>
+            <a href="#accueil">Accueil</a>
+            <a href="#services">Services</a>
+            <a href="#apropos">À propos</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </header>
+
+    <section class="hero" id="accueil">
+        <div class="hero-content">
+            <h1>Nexus Fontes Group</h1>
+
+            <p>
+                Construction • Architecture • Solutions techniques
+            </p>
+
+            <a href="#contact" class="button">
+                Nous contacter
+            </a>
+        </div>
+    </section>
+
+    <section id="services">
+        <div class="section-title">
+            <h2>Nos services</h2>
+        </div>
+
+        <div class="services">
+
+            <div class="service">
+                <h3>Construction & Génie civil</h3>
+                <p>
+                    Construction, rénovation, réhabilitation,
+                    entretien et aménagement des bâtiments et infrastructures.
+                </p>
+            </div>
+
+            <div class="service">
+                <h3>Architecture & Aménagement</h3>
+                <p>
+                    Architecture intérieure, décoration,
+                    agencement et conception d'espaces fonctionnels.
+                </p>
+            </div>
+
+            <div class="service">
+                <h3>Solutions techniques</h3>
+                <p>
+                    Solutions électriques, maintenance,
+                    énergie solaire et installations techniques.
+                </p>
+            </div>
+
+            <div class="service">
+                <h3>Sécurité & Technologies</h3>
+                <p>
+                    Installation de systèmes de vidéosurveillance
+                    et solutions technologiques adaptées.
+                </p>
+            </div>
+
+            <div class="service">
+                <h3>Maintenance</h3>
+                <p>
+                    Entretien et maintenance des équipements,
+                    installations et infrastructures.
+                </p>
+            </div>
+
+            <div class="service">
+                <h3>Matériaux & Fournitures</h3>
+                <p>
+                    Vente et distribution de matériaux et équipements
+                    destinés aux projets de construction.
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="about" id="apropos">
+        <div class="section-title">
+            <h2>À propos de nous</h2>
+        </div>
+
+        <p>
+            Nexus Fontes Group est une entreprise orientée vers la
+            construction, l'aménagement, les solutions techniques et
+            les services associés. Notre objectif est d'apporter des
+            solutions professionnelles, fiables et adaptées aux besoins
+            de nos clients.
+        </p>
+    </section>
+
+    <section class="contact" id="contact">
+        <div class="section-title">
+            <h2>Contactez-nous</h2>
+        </div>
+
+        <p>
+            Parlons de votre prochain projet.
+        </p>
+
+        <br>
+
+        <a href="mailto:contact@nexusfontesgroup.com" class="button">
+            Nous contacter
+        </a>
+    </section>
+
+    <footer>
+        <p>© 2026 Nexus Fontes Group. Tous droits réservés.</p>
+    </footer>
+
+</body>
+</html>
