@@ -5,21 +5,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Administration | NFG</title>
 <style>
-:root{--n:#10243d;--g:#b9975b;--l:#e5e8ec}
+:root{--navy:#10243d;--gold:#b9975b;--line:#e5e8ec}
 *{box-sizing:border-box}
-body{margin:0;background:#f5f6f8;color:#182331;font:16px Arial}
-header{background:var(--n);color:white;padding:22px}
-main{max-width:1050px;margin:30px auto;padding:0 16px}
-.panel{background:white;border:1px solid var(--l);padding:22px;margin:18px 0}
-input,textarea,select{width:100%;padding:12px;margin:7px 0 14px;border:1px solid #ccd2d9;font:inherit}
-button{background:var(--n);color:white;border:0;padding:12px 18px;cursor:pointer;margin:4px}
+body{margin:0;background:#f4f6f8;color:#182331;font:16px Arial,sans-serif}
+header{background:var(--navy);color:white;padding:25px}
+header p{color:#e2e6eb}
+main{max-width:1100px;margin:28px auto;padding:0 16px}
+.panel{background:white;border:1px solid var(--line);border-radius:10px;padding:22px;margin:18px 0}
+h2{color:var(--navy);margin-top:0}
+h3{color:var(--navy)}
+label{display:block;font-weight:600;margin-top:10px}
+input,textarea,select{width:100%;padding:12px;margin:7px 0 14px;border:1px solid #ccd2d9;border-radius:5px;font:inherit;background:white}
+input[type=checkbox]{width:auto}
+button{background:var(--navy);color:white;border:0;border-radius:5px;padding:12px 18px;cursor:pointer;margin:4px}
+button:hover{opacity:.9}
 button.secondary{background:#687585}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.item{border:1px solid var(--l);padding:12px;margin:10px 0}
-.item img{max-width:100%;height:130px;object-fit:cover}
+button.danger{background:#a83232}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.item{border:1px solid var(--line);border-radius:8px;padding:15px;margin:12px 0;background:#fff}
+.item img{max-width:180px;max-height:140px;object-fit:cover;display:block;margin:8px 0}
 .hidden{display:none}
 .muted{color:#65717e}
-@media(max-width:600px){main{margin:15px auto}.panel{padding:15px}}
+.status{padding:8px 0}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:600px){main{margin:15px auto}.panel{padding:15px}header{padding:18px}}
 </style>
 </head>
 <body>
@@ -27,6 +36,7 @@ button.secondary{background:#687585}
 <h1>NFG · Espace d’administration</h1>
 <p>Gestion des produits, projets, fournisseurs, demandes et témoignages.</p>
 </header>
+
 <main>
 <section id="login" class="panel">
 <h2>Connexion administrateur</h2>
@@ -34,49 +44,87 @@ button.secondary{background:#687585}
 <input id="email" type="email" autocomplete="username">
 <label>Mot de passe</label>
 <input id="password" type="password" autocomplete="current-password">
-<button id="loginBtn">Se connecter</button>
-<p id="loginMsg" role="status"></p>
-<p class="muted">Le compte administrateur sera créé dans Supabase.</p>
+<button id="loginBtn" type="button">Se connecter</button>
+<p id="loginMsg" class="status" role="status"></p>
 </section>
+
 <section id="app" class="hidden">
 <div class="panel">
-<button id="logout" class="secondary">Se déconnecter</button>
-<h2>Ajouter / modifier un produit</h2>
+<button id="logout" class="secondary" type="button">Se déconnecter</button>
+<h2>Gestion des produits</h2>
 <form id="productForm">
 <input type="hidden" id="productId">
 <div class="grid">
 <div><label>Nom du produit *</label><input id="pname" required></div>
-<div><label>Catégorie</label><input id="pcat" placeholder="Ciment, plomberie, électricité…"></div>
+<div><label>Catégorie *</label><select id="pcat" required><option value="">Chargement...</option></select></div>
 <div><label>Prix</label><input id="pprice" type="number" min="0" step="0.01"></div>
 <div><label>Devise</label><select id="pcurrency"><option>USD</option><option>CDF</option></select></div>
+<div><label>Référence</label><input id="preference"></div>
+<div><label>Quantité en stock</label><input id="pstock" type="number" min="0" step="1" value="1"></div>
 </div>
-<label>Description</label><textarea id="pdesc"></textarea>
-<label>Disponibilité</label><input id="pavailability" placeholder="En stock / Sur commande">
-<label>Photo du produit</label><input id="pimage" type="file" accept="image/*">
-<label><input id="ppublished" type="checkbox" checked style="width:auto"> Publier le produit</label>
+<label>Description</label>
+<textarea id="pdesc" rows="4"></textarea>
+<label>Photo du produit</label>
+<input id="pimage" type="file" accept="image/jpeg,image/png,image/webp">
+<label><input id="ppublished" type="checkbox" checked> Publier le produit</label>
+<div class="actions">
 <button type="submit">Enregistrer le produit</button>
-<button type="button" id="resetProduct" class="secondary">Vider</button>
-<p id="productMsg"></p>
+<button type="button" id="resetProduct" class="secondary">Annuler / Vider</button>
+</div>
+<p id="productMsg" class="status" role="status"></p>
 </form>
 </div>
-<div class="panel"><h2>Catalogue des produits</h2><div id="products"></div></div>
+
 <div class="panel">
-<h2>Ajouter un projet au portfolio</h2>
-<form id="projectForm">
-<label>Titre *</label><input id="projectTitle" required>
-<label>Description</label><textarea id="projectDesc"></textarea>
-<label>Photo</label><input id="projectImage" type="file" accept="image/*">
-<label><input id="projectPublished" type="checkbox" checked style="width:auto"> Publier</label>
-<button>Enregistrer le projet</button>
-<p id="projectMsg"></p>
-</form>
-<div id="projectList"></div>
+<h2>Catalogue des produits</h2>
+<div id="products">Chargement...</div>
 </div>
-<div class="panel"><h2>Candidatures fournisseurs</h2><div id="suppliers"></div></div>
-<div class="panel"><h2>Demandes de contact</h2><div id="inquiries"></div></div>
-<div class="panel"><h2>Avis clients</h2><div id="reviews"></div></div>
+
+<div class="panel">
+<h2>Gestion des projets</h2>
+<form id="projectForm">
+<input type="hidden" id="projectId">
+<label>Titre du projet *</label>
+<input id="projectTitle" required>
+<div class="grid">
+<div><label>Emplacement</label><input id="projectLocation" placeholder="Ex. Kinshasa, Gombe"></div>
+<div><label>Catégorie</label><input id="projectCategory" placeholder="Ex. Construction, architecture"></div>
+</div>
+<label>Description</label>
+<textarea id="projectDesc" rows="4"></textarea>
+<label>Photo du projet</label>
+<input id="projectImage" type="file" accept="image/jpeg,image/png,image/webp">
+<label><input id="projectPublished" type="checkbox" checked> Publier le projet</label>
+<div class="actions">
+<button type="submit">Enregistrer le projet</button>
+<button type="button" id="resetProject" class="secondary">Annuler / Vider</button>
+</div>
+<p id="projectMsg" class="status" role="status"></p>
+</form>
+</div>
+
+<div class="panel">
+<h2>Portfolio des projets</h2>
+<div id="projectList">Chargement...</div>
+</div>
+
+<div class="panel">
+<h2>Candidatures fournisseurs</h2>
+<div id="suppliers">Chargement...</div>
+</div>
+
+<div class="panel">
+<h2>Demandes de contact</h2>
+<div id="inquiries">Chargement...</div>
+</div>
+
+<div class="panel">
+<h2>Avis clients</h2>
+<div id="reviews">Chargement...</div>
+</div>
 </section>
 </main>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="nfg-config.js"></script>
 <script src="admin.js"></script>
