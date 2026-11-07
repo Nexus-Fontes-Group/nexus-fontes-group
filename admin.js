@@ -1,15 +1,17 @@
-/* NFG - Administration */
+/* =====================================================
+   NFG - ADMINISTRATION
+   Produits, projets, fournisseurs, contacts et avis
+===================================================== */
 
 const db = window.supabase.createClient(
   window.NFG_SUPABASE_URL,
   window.NFG_SUPABASE_ANON_KEY
 );
 
-const $ = id => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
-let categories = [];
-let currentProduct = null;
-let currentProject = null;
+let currentProducts = [];
+let currentProjects = [];
 
 function message(id, text, error = false) {
   const el = $(id);
@@ -18,75 +20,66 @@ function message(id, text, error = false) {
   el.style.color = error ? "#b42318" : "#18794e";
 }
 
-function showApp(connected) {
-  $("login").classList.toggle("hidden", connected);
-  $("app").classList.toggle("hidden", !connected);
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
 }
 
-function addText(parent, tag, value) {
-  const el = document.createElement(tag);
-  el.textContent = value ?? "";
-  parent.appendChild(el);
-  return el;
+function showApp(session) {
+  $("login")?.classList.toggle("hidden", !!session);
+  $("app")?.classList.toggle("hidden", !session);
+
+  if (session) {
+    loadCategories();
+    loadProducts();
+    loadProjects();
+    loadOtherSections();
+  }
 }
 
-async function login() {
-  const email = $("email").value.trim();
-  const password = $("password").value;
+/* CONNEXION */
+
+$("loginBtn")?.addEventListener("click", async () => {
+  const email = $("email")?.value.trim();
+  const password = $("password")?.value;
 
   if (!email || !password) {
-    message("loginMsg", "Veuillez remplir les deux champs.", true);
+    message("loginMsg", "Saisis ton e-mail et ton mot de passe.", true);
     return;
   }
 
-  const { error } = await db.auth.signInWithPassword({ email, password });
+  message("loginMsg", "Connexion en cours...");
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email,
+    password
+  });
 
   if (error) {
     message("loginMsg", error.message, true);
     return;
   }
 
-  showApp(true);
-  await loadDashboard();
-}
+  message("loginMsg", "Connexion réussie.");
+  showApp(data.session);
+});
 
-async function logout() {
+$("logout")?.addEventListener("click", async () => {
   await db.auth.signOut();
-  showApp(false);
-}
+  showApp(null);
+});
 
-async function uploadImage(file, folder) {
-  if (!file) return null;
-
-  const extension = file.name.split(".").pop().toLowerCase();
-  const allowed = ["jpg", "jpeg", "png", "webp"];
-
-  if (!allowed.includes(extension)) {
-    throw new Error("Format accepté : JPG, PNG ou WEBP.");
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    throw new Error("L'image dépasse la limite de 10 Mo.");
-  }
-
-  const path = `${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-
-  const { error } = await db.storage
-    .from("NFG-images")
-    .upload(path, file);
-
-  if (error) throw error;
-
-  const { data } = db.storage
-    .from("NFG-images")
-    .getPublicUrl(path);
-
-  return data.publicUrl;
-}
-
-/* CATEGORIES */
+/* CATÉGORIES */
 
 async function loadCategories() {
+  const field = $("pcat");
+  if (!field || field.tagName !== "SELECT") return;
+
   const { data, error } = await db
     .from("categories")
     .select("id,name")
@@ -98,28 +91,75 @@ async function loadCategories() {
     return;
   }
 
-  categories = data || [];
-  const select = $("pcat");
-  select.replaceChildren();
+  const previous = field.value;
+  field.innerHTML = '<option value="">Choisir une catégorie</option>';
 
-  const first = document.createElement("option");
-  first.value = "";
-  first.textContent = "Choisir une catégorie";
-  select.appendChild(first);
-
-  categories.forEach(category => {
+  (data || []).forEach((category) => {
     const option = document.createElement("option");
     option.value = category.id;
     option.textContent = category.name;
-    select.appendChild(option);
+    field.appendChild(option);
   });
+
+  if (previous) field.value = previous;
+}
+
+async function getCategoryId() {
+  const field = $("pcat");
+  if (!field || !field.value.trim()) return null;
+
+  if (field.tagName === "SELECT") return field.value;
+
+  const { data, error } = await db
+    .from("categories")
+    .select("id")
+    .ilike("name", field.value.trim())
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id || null;
+}
+
+/* PHOTOS */
+
+async function uploadPhoto(file, folder) {
+  if (!file) return null;
+
+  const extension = file.name.split(".").pop().toLowerCase();
+  const allowed = ["jpg", "jpeg", "png", "webp", "svg"];
+
+  if (!allowed.includes(extension)) {
+    throw new Error("Format de photo non autorisé.");
+  }
+
+  const fileName =
+    folder + "/" + Date.now() + "-" +
+    Math.random().toString(36).slice(2) + "." + extension;
+
+  const { error } = await db.storage
+    .from("NFG-images")
+    .upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: false
+    });
+
+  if (error) throw error;
+
+  const { data } = db.storage
+    .from("NFG-images")
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
 }
 
 /* PRODUITS */
 
 async function loadProducts() {
   const container = $("products");
-  container.textContent = "Chargement...";
+  if (!container) return;
+
+  container.textContent = "Chargement des produits...";
 
   const { data, error } = await db
     .from("products")
@@ -131,134 +171,112 @@ async function loadProducts() {
     return;
   }
 
-  container.replaceChildren();
+  currentProducts = data || [];
 
-  if (!data.length) {
+  if (!currentProducts.length) {
     container.textContent = "Aucun produit enregistré.";
     return;
   }
 
-  data.forEach(product => {
-    const card = document.createElement("div");
-    card.className = "item";
+  container.innerHTML = currentProducts.map((p) => {
+    const name = p.name ?? p.Nom ?? "Produit sans nom";
+    const images = Array.isArray(p.image_urls) ? p.image_urls : [];
+    const image = images[0] || "";
 
-    addText(card, "h3", product.name);
-    addText(card, "p", `Prix : ${product.price ?? ""} ${product.currency || ""}`);
-    addText(card, "p", `Référence : ${product.reference || "Non renseignée"}`);
-    addText(card, "p", `Stock : ${product.stock_quantity}`);
-    addText(card, "p", product.is_published ? "Publié" : "Non publié");
-
-    if (product.image_urls?.length) {
-      const img = document.createElement("img");
-      img.src = product.image_urls[0];
-      img.alt = product.name || "Photo du produit";
-      card.appendChild(img);
-    }
-
-    const actions = document.createElement("div");
-    actions.className = "actions";
-
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.textContent = "Modifier";
-    edit.addEventListener("click", () => editProduct(product));
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "danger";
-    remove.textContent = "Supprimer";
-    remove.addEventListener("click", () => deleteProduct(product.id));
-
-    actions.append(edit, remove);
-    card.appendChild(actions);
-    container.appendChild(card);
-  });
+    return `
+      <div class="item">
+        ${image ? `<img src="${escapeHTML(image)}" alt="">` : ""}
+        <h3>${escapeHTML(name)}</h3>
+        <p>${escapeHTML(p.description ?? p.Description ?? "")}</p>
+        <p>Prix : ${escapeHTML(p.price ?? p.Prix ?? "Non précisé")}
+        ${escapeHTML(p.currency ?? p.Monnaie ?? "USD")}</p>
+        <p>Statut : ${p.is_published ? "Publié" : "Non publié"}</p>
+        <button type="button" onclick="editProduct('${p.id}')">Modifier</button>
+        <button type="button" class="secondary" onclick="deleteProduct('${p.id}')">Supprimer</button>
+      </div>
+    `;
+  }).join("");
 }
 
-function editProduct(product) {
-  currentProduct = product;
-
-  $("productId").value = product.id;
-  $("pname").value = product.name || "";
-  $("pcat").value = product.category_id || "";
-  $("pprice").value = product.price ?? "";
-  $("pcurrency").value = product.currency || "USD";
-  $("preference").value = product.reference || "";
-  $("pstock").value = product.stock_quantity ?? 0;
-  $("pdesc").value = product.description || "";
-  $("ppublished").checked = product.is_published;
-
-  message("productMsg", "Produit chargé pour modification.");
-  $("productForm").scrollIntoView({ behavior: "smooth" });
-}
-
-function resetProduct() {
-  currentProduct = null;
-  $("productForm").reset();
-  $("productId").value = "";
-  $("pstock").value = 1;
-  message("productMsg", "");
-}
-
-async function saveProduct(event) {
+$("productForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
+  const id = $("productId")?.value;
+  const name = $("pname")?.value.trim();
+
+  if (!name) {
+    message("productMsg", "Le nom du produit est obligatoire.", true);
+    return;
+  }
+
+  message("productMsg", "Enregistrement en cours...");
+
   try {
-    const name = $("pname").value.trim();
-    const categoryId = $("pcat").value;
-    const priceValue = $("pprice").value;
-    const stock = Number($("pstock").value);
+    const categoryId = await getCategoryId();
+    const oldProduct = currentProducts.find((p) => p.id === id);
 
-    if (!name || !categoryId) {
-      throw new Error("Le nom et la catégorie sont obligatoires.");
-    }
-
-    if (priceValue !== "" && (!Number.isFinite(Number(priceValue)) || Number(priceValue) < 0)) {
-      throw new Error("Le prix doit être un nombre positif.");
-    }
-
-    if (!Number.isInteger(stock) || stock < 0) {
-      throw new Error("La quantité en stock doit être un entier positif ou zéro.");
-    }
-
-    let images = currentProduct?.image_urls || [];
-    const file = $("pimage").files[0];
+    let images = oldProduct?.image_urls || [];
+    const file = $("pimage")?.files?.[0];
 
     if (file) {
-      const url = await uploadImage(file, "marketplace");
+      const url = await uploadPhoto(file, "marketplace");
       images = [url];
     }
 
-    const record = {
+    const product = {
       name,
+      description: $("pdesc")?.value.trim() || "",
+      price: $("pprice")?.value ? Number($("pprice").value) : null,
+      currency: $("pcurrency")?.value || "USD",
       category_id: categoryId,
-      supplier_id: currentProduct?.supplier_id || null,
-      description: $("pdesc").value.trim() || null,
-      reference: $("preference").value.trim() || null,
-      price: priceValue === "" ? null : Number(priceValue),
-      currency: $("pcurrency").value,
-      stock_quantity: stock,
+      reference: oldProduct?.reference || null,
+      stock_quantity: oldProduct?.stock_quantity ?? 1,
       image_urls: images,
-      is_published: $("ppublished").checked
+      is_published: $("ppublished")?.checked ?? true
     };
 
-    const result = currentProduct
-      ? await db.from("products").update(record).eq("id", currentProduct.id)
-      : await db.from("products").insert(record);
+    let result;
+
+    if (id) {
+      result = await db.from("products").update(product).eq("id", id);
+    } else {
+      result = await db.from("products").insert(product);
+    }
 
     if (result.error) throw result.error;
 
     message("productMsg", "Produit enregistré avec succès.");
-    resetProduct();
+    $("productForm").reset();
+    if ($("productId")) $("productId").value = "";
     await loadProducts();
 
   } catch (error) {
-    message("productMsg", error.message, true);
+    message("productMsg", "Erreur : " + error.message, true);
   }
-}
+});
 
-async function deleteProduct(id) {
-  if (!confirm("Confirmer la suppression de ce produit ?")) return;
+window.editProduct = function(id) {
+  const p = currentProducts.find((item) => item.id === id);
+  if (!p) return;
+
+  $("productId").value = p.id;
+  $("pname").value = p.name ?? p.Nom ?? "";
+  $("pprice").value = p.price ?? p.Prix ?? "";
+  $("pcurrency").value = p.currency ?? p.Monnaie ?? "USD";
+  $("pdesc").value = p.description ?? p.Description ?? "";
+
+  if ($("pcat")?.tagName === "SELECT") {
+    $("pcat").value = p.category_id || "";
+  }
+
+  if ($("ppublished")) $("ppublished").checked = !!p.is_published;
+
+  message("productMsg", "Produit chargé. Tu peux le modifier.");
+  $("productForm").scrollIntoView({ behavior: "smooth" });
+};
+
+window.deleteProduct = async function(id) {
+  if (!confirm("Supprimer définitivement ce produit ?")) return;
 
   const { error } = await db.from("products").delete().eq("id", id);
 
@@ -269,13 +287,21 @@ async function deleteProduct(id) {
 
   message("productMsg", "Produit supprimé.");
   await loadProducts();
-}
+};
+
+$("resetProduct")?.addEventListener("click", () => {
+  $("productForm")?.reset();
+  if ($("productId")) $("productId").value = "";
+  message("productMsg", "");
+});
 
 /* PROJETS */
 
 async function loadProjects() {
   const container = $("projectList");
-  container.textContent = "Chargement...";
+  if (!container) return;
+
+  container.textContent = "Chargement des projets...";
 
   const { data, error } = await db
     .from("projects")
@@ -287,112 +313,122 @@ async function loadProjects() {
     return;
   }
 
-  container.replaceChildren();
+  currentProjects = data || [];
 
-  if (!data.length) {
+  if (!currentProjects.length) {
     container.textContent = "Aucun projet enregistré.";
     return;
   }
 
-  data.forEach(project => {
-    const card = document.createElement("div");
-    card.className = "item";
+  container.innerHTML = currentProjects.map((p) => {
+    const images = Array.isArray(p.image_urls) ? p.image_urls : [];
 
-    addText(card, "h3", project.title);
-    addText(card, "p", project.description || "");
-    addText(card, "p", `Emplacement : ${project.location || "Non renseigné"}`);
-    addText(card, "p", `Catégorie : ${project.category || "Non renseignée"}`);
-    addText(card, "p", project.is_published ? "Publié" : "Non publié");
-
-    if (project.image_urls?.length) {
-      const img = document.createElement("img");
-      img.src = project.image_urls[0];
-      img.alt = project.title || "Photo du projet";
-      card.appendChild(img);
-    }
-
-    const actions = document.createElement("div");
-    actions.className = "actions";
-
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.textContent = "Modifier";
-    edit.addEventListener("click", () => editProject(project));
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "danger";
-    remove.textContent = "Supprimer";
-    remove.addEventListener("click", () => deleteProject(project.id));
-
-    actions.append(edit, remove);
-    card.appendChild(actions);
-    container.appendChild(card);
-  });
+    return `
+      <div class="item">
+        ${images[0] ? `<img src="${escapeHTML(images[0])}" alt="">` : ""}
+        <h3>${escapeHTML(p.title ?? p.Titre ?? "")}</h3>
+        <p>${escapeHTML(p.description ?? p.Description ?? "")}</p>
+        <p>${escapeHTML(p.location ?? p.Emplacement ?? "")}</p>
+        <p>${p.is_published ? "Publié" : "Non publié"}</p>
+        <button type="button" onclick="editProject('${p.id}')">Modifier</button>
+        <button type="button" class="secondary" onclick="deleteProject('${p.id}')">Supprimer</button>
+      </div>
+    `;
+  }).join("");
 }
 
-function editProject(project) {
-  currentProject = project;
+function projectIdField() {
+  let field = $("projectId");
 
-  $("projectId").value = project.id;
-  $("projectTitle").value = project.title || "";
-  $("projectLocation").value = project.location || "";
-  $("projectCategory").value = project.category || "";
-  $("projectDesc").value = project.description || "";
-  $("projectPublished").checked = project.is_published;
+  if (!field && $("projectForm")) {
+    field = document.createElement("input");
+    field.type = "hidden";
+    field.id = "projectId";
+    $("projectForm").prepend(field);
+  }
 
-  message("projectMsg", "Projet chargé pour modification.");
-  $("projectForm").scrollIntoView({ behavior: "smooth" });
+  return field;
 }
 
-function resetProject() {
-  currentProject = null;
-  $("projectForm").reset();
-  $("projectId").value = "";
-  message("projectMsg", "");
-}
-
-async function saveProject(event) {
+$("projectForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  try {
-    const title = $("projectTitle").value.trim();
-    if (!title) throw new Error("Le titre du projet est obligatoire.");
+  const title = $("projectTitle")?.value.trim();
 
-    let images = currentProject?.image_urls || [];
-    const file = $("projectImage").files[0];
+  if (!title) {
+    message("projectMsg", "Le titre du projet est obligatoire.", true);
+    return;
+  }
+
+  message("projectMsg", "Enregistrement du projet...");
+
+  try {
+    const id = projectIdField()?.value;
+    const oldProject = currentProjects.find((p) => p.id === id);
+
+    let images = oldProject?.image_urls || [];
+    const file = $("projectImage")?.files?.[0];
 
     if (file) {
-      const url = await uploadImage(file, "projets");
+      const url = await uploadPhoto(file, "projets");
       images = [url];
     }
 
-    const record = {
+    const project = {
       title,
-      description: $("projectDesc").value.trim() || null,
-      location: $("projectLocation").value.trim() || null,
-      category: $("projectCategory").value.trim() || null,
+      description: $("projectDesc")?.value.trim() || "",
+      location: $("projectLocation")?.value.trim() || oldProject?.location || "",
+      category: $("projectCategory")?.value.trim() || oldProject?.category || "",
       image_urls: images,
-      is_published: $("projectPublished").checked
+      is_published: $("projectPublished")?.checked ?? true
     };
 
-    const result = currentProject
-      ? await db.from("projects").update(record).eq("id", currentProject.id)
-      : await db.from("projects").insert(record);
+    let result;
+
+    if (id) {
+      result = await db.from("projects").update(project).eq("id", id);
+    } else {
+      result = await db.from("projects").insert(project);
+    }
 
     if (result.error) throw result.error;
 
     message("projectMsg", "Projet enregistré avec succès.");
-    resetProject();
+    $("projectForm").reset();
+    if (projectIdField()) projectIdField().value = "";
     await loadProjects();
 
   } catch (error) {
-    message("projectMsg", error.message, true);
+    message("projectMsg", "Erreur : " + error.message, true);
   }
-}
+});
 
-async function deleteProject(id) {
-  if (!confirm("Confirmer la suppression de ce projet ?")) return;
+window.editProject = function(id) {
+  const p = currentProjects.find((item) => item.id === id);
+  if (!p) return;
+
+  projectIdField().value = p.id;
+  $("projectTitle").value = p.title ?? p.Titre ?? "";
+  $("projectDesc").value = p.description ?? p.Description ?? "";
+
+  if ($("projectLocation")) {
+    $("projectLocation").value = p.location ?? p.Emplacement ?? "";
+  }
+
+  if ($("projectCategory")) {
+    $("projectCategory").value = p.category ?? p.Catégorie ?? "";
+  }
+
+  if ($("projectPublished")) {
+    $("projectPublished").checked = !!p.is_published;
+  }
+
+  message("projectMsg", "Projet chargé. Tu peux le modifier.");
+  $("projectForm").scrollIntoView({ behavior: "smooth" });
+};
+
+window.deleteProject = async function(id) {
+  if (!confirm("Supprimer définitivement ce projet ?")) return;
 
   const { error } = await db.from("projects").delete().eq("id", id);
 
@@ -403,85 +439,66 @@ async function deleteProject(id) {
 
   message("projectMsg", "Projet supprimé.");
   await loadProjects();
+};
+
+/* AUTRES RUBRIQUES */
+
+async function loadOtherSections() {
+  await loadSimpleList(
+    "supplier_applications",
+    "suppliers",
+    ["company_name", "contact_name", "email", "telephone", "adresse", "message"]
+  );
+
+  await loadSimpleList(
+    "contact_messages",
+    "inquiries",
+    ["name", "email", "phone", "subject", "message"]
+  );
+
+  await loadSimpleList(
+    "testimonials",
+    "reviews",
+    ["customer_name", "content", "rating"]
+  );
 }
 
-/* CANDIDATURES, CONTACTS ET AVIS */
-
-async function loadTable(table, elementId) {
+async function loadSimpleList(table, elementId, fields) {
   const container = $(elementId);
-  container.textContent = "Chargement...";
+  if (!container) return;
 
   const { data, error } = await db
     .from(table)
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(50);
 
   if (error) {
-    container.textContent = "Erreur : " + error.message;
+    container.textContent = "Consultation non autorisée ou erreur : " + error.message;
     return;
   }
 
-  container.replaceChildren();
-
-  if (!data.length) {
+  if (!data?.length) {
     container.textContent = "Aucun élément enregistré.";
     return;
   }
 
-  data.forEach(record => {
-    const card = document.createElement("div");
-    card.className = "item";
-
-    Object.entries(record).forEach(([key, value]) => {
-      if (value === null) return;
-      addText(
-        card,
-        "p",
-        `${key} : ${typeof value === "object" ? JSON.stringify(value) : value}`
-      );
-    });
-
-    container.appendChild(card);
-  });
+  container.innerHTML = data.map((item) => `
+    <div class="item">
+      ${fields.map((field) => item[field] ? `
+        <p><strong>${escapeHTML(field)} :</strong>
+        ${escapeHTML(item[field])}</p>
+      ` : "").join("")}
+    </div>
+  `).join("");
 }
 
-/* CHARGEMENT GENERAL */
+/* RESTAURATION DE SESSION */
 
-async function loadDashboard() {
-  await loadCategories();
+db.auth.onAuthStateChange((_event, session) => {
+  showApp(session);
+});
 
-  await Promise.all([
-    loadProducts(),
-    loadProjects(),
-    loadTable("supplier_applications", "suppliers"),
-    loadTable("contact_messages", "inquiries"),
-    loadTable("testimonials", "reviews")
-  ]);
-}
-
-/* EVENEMENTS */
-
-$("loginBtn").addEventListener("click", login);
-$("logout").addEventListener("click", logout);
-$("productForm").addEventListener("submit", saveProduct);
-$("projectForm").addEventListener("submit", saveProject);
-$("resetProduct").addEventListener("click", resetProduct);
-$("resetProject").addEventListener("click", resetProject);
-
-async function checkSession() {
-  const { data, error } = await db.auth.getSession();
-
-  if (error) {
-    message("loginMsg", error.message, true);
-    return;
-  }
-
-  showApp(!!data.session);
-
-  if (data.session) {
-    await loadDashboard();
-  }
-}
-
-checkSession();
+db.auth.getSession().then(({ data }) => {
+  showApp(data.session);
+});
