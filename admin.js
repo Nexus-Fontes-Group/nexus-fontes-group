@@ -138,7 +138,7 @@ async function uploadPhoto(file, folder) {
     Math.random().toString(36).slice(2) + "." + extension;
 
   const { error } = await db.storage
-    .from("NFG-images")
+    .from("nfg-images")
     .upload(fileName, file, {
       cacheControl: "3600",
       upsert: false
@@ -147,7 +147,7 @@ async function uploadPhoto(file, folder) {
   if (error) throw error;
 
   const { data } = db.storage
-    .from("NFG-images")
+    .from("nfg-images")
     .getPublicUrl(fileName);
 
   return data.publicUrl;
