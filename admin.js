@@ -1,4 +1,4 @@
-const db = supabase.createClient(
+const db = window.supabase.createClient(
   window.NFG_SUPABASE_URL,
   window.NFG_SUPABASE_ANON_KEY
 );
@@ -6,10 +6,10 @@ const db = supabase.createClient(
 const $ = (id) => document.getElementById(id);
 
 function showMessage(id, text, error = false) {
-  const el = $(id);
-  if (!el) return;
-  el.textContent = text;
-  el.style.color = error ? "#b42318" : "#18794e";
+  const element = $(id);
+  if (!element) return;
+  element.textContent = text;
+  element.style.color = error ? "#b42318" : "#18794e";
 }
 
 function showApp(connected) {
@@ -18,8 +18,13 @@ function showApp(connected) {
 }
 
 async function login() {
-  const email = $("email").value.trim();
-  const password = $("password").value;
+  const email = $("email")?.value.trim();
+  const password = $("password")?.value;
+
+  if (!email || !password) {
+    showMessage("loginMsg", "Veuillez remplir les deux champs.", true);
+    return;
+  }
 
   const { error } = await db.auth.signInWithPassword({
     email,
@@ -31,7 +36,6 @@ async function login() {
     return;
   }
 
-  showMessage("loginMsg", "Connexion réussie.");
   showApp(true);
   await loadDashboard();
 }
@@ -39,13 +43,13 @@ async function login() {
 async function logout() {
   const { error } = await db.auth.signOut();
   if (error) {
-    alert(error.message);
+    showMessage("loginMsg", error.message, true);
     return;
   }
   showApp(false);
 }
 
-async function loadList(table, elementId, fields) {
+async function loadTable(table, elementId) {
   const container = $(elementId);
   if (!container) return;
 
@@ -53,12 +57,12 @@ async function loadList(table, elementId, fields) {
 
   const { data, error } = await db
     .from(table)
-    .select(fields)
+    .select("*")
     .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) {
-    container.textContent = "Accès non disponible : " + error.message;
+    container.textContent = "Chargement impossible : " + error.message;
     return;
   }
 
@@ -87,33 +91,88 @@ async function loadList(table, elementId, fields) {
   });
 }
 
+async function loadProducts() {
+  const container = $("products");
+  if (!container) return;
+
+  container.textContent = "Chargement des produits...";
+
+  const { data, error } = await db
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    container.textContent = "Erreur produits : " + error.message;
+    return;
+  }
+
+  container.replaceChildren();
+
+  (data || []).forEach((product) => {
+    const card = document.createElement("div");
+    card.className = "item";
+
+    const title = document.createElement("strong");
+    title.textContent = product["Nom"] || "Produit";
+    card.appendChild(title);
+
+    const details = document.createElement("p");
+    details.textContent =
+      `${product["Prix"] ?? ""} ${product["Monnaie"] ?? ""}`;
+    card.appendChild(details);
+
+    const description = document.createElement("p");
+    description.textContent = product["Description"] || "";
+    card.appendChild(description);
+
+    container.appendChild(card);
+  });
+}
+
+async function loadProjects() {
+  const container = $("projectList");
+  if (!container) return;
+
+  container.textContent = "Chargement des projets...";
+
+  const { data, error } = await db
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    container.textContent = "Erreur projets : " + error.message;
+    return;
+  }
+
+  container.replaceChildren();
+
+  (data || []).forEach((project) => {
+    const card = document.createElement("div");
+    card.className = "item";
+
+    const title = document.createElement("strong");
+    title.textContent = project.title || "Projet";
+    card.appendChild(title);
+
+    const description = document.createElement("p");
+    description.textContent = project.description || "";
+    card.appendChild(description);
+
+    container.appendChild(card);
+  });
+}
+
 async function loadDashboard() {
   await Promise.all([
-    loadList(
-      "products",
-      "products",
-      "*"
-    ),
-    loadList(
-      "projects",
-      "projectList",
-      "*"
-    ),
-    loadList(
-      "supplier_applications",
-      "suppliers",
-      "*"
-    ),
-    loadList(
-      "contact_messages",
-      "inquiries",
-      "*"
-    ),
-    loadList(
-      "testimonials",
-      "reviews",
-      "*"
-    )
+    loadProducts(),
+    loadProjects(),
+    loadTable("supplier_applications", "suppliers"),
+    loadTable("contact_messages", "inquiries"),
+    loadTable("testimonials", "reviews")
   ]);
 }
 
@@ -128,9 +187,7 @@ async function checkSession() {
   const connected = !!data.session;
   showApp(connected);
 
-  if (connected) {
-    await loadDashboard();
-  }
+  if (connected) await loadDashboard();
 }
 
 $("loginBtn")?.addEventListener("click", login);
