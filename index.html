@@ -3,150 +3,492 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Fontes Group</title>
+
+    <title>Nexus Fontes Group SARL | Construire. Réaliser. Transformer.</title>
+
+    <meta name="description" content="Nexus Fontes Group SARL : construction, architecture intérieure, rénovation, énergie solaire, vidéosurveillance et matériaux de construction.">
 
     <style>
+        :root {
+            --navy: #0b1f33;
+            --white: #ffffff;
+            --text: #263442;
+            --muted: #687582;
+            --light: #f5f7f9;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            color: #1f2933;
-            background: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text);
+            background: var(--white);
             line-height: 1.6;
         }
 
+        /* HEADER */
+
         header {
-            background: #0b1f33;
-            color: white;
-            padding: 20px 8%;
+            position: relative;
+            z-index: 20;
+            background: var(--navy);
+            min-height: 88px;
+            padding: 12px 7%;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 25px;
         }
 
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 0;
+        }
+
+        .logo-box {
+            background: #ffffff;
+            padding: 5px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-box img {
+            width: 64px;
+            height: 55px;
+            object-fit: contain;
+        }
+
+        .brand-name {
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 26px;
         }
 
         nav a {
             color: white;
             text-decoration: none;
-            margin-left: 25px;
+            font-size: 14px;
+            transition: opacity .2s;
         }
 
         nav a:hover {
-            text-decoration: underline;
+            opacity: .7;
         }
 
+        /* HERO CAROUSEL */
+
         .hero {
-            min-height: 80vh;
-            background: linear-gradient(
-                rgba(11, 31, 51, 0.75),
-                rgba(11, 31, 51, 0.75)
-            );
-            display: flex;
-            align-items: center;
-            padding: 60px 8%;
+            position: relative;
+            height: min(760px, 83vh);
+            min-height: 540px;
+            overflow: hidden;
+            background: var(--navy);
             color: white;
         }
 
-        .hero-content {
-            max-width: 700px;
+        .slides {
+            position: absolute;
+            inset: 0;
         }
 
-        .hero h1 {
-            font-size: 52px;
+        .slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s ease, visibility 1s ease;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .slide::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(5, 19, 32, .78) 0%,
+                rgba(5, 19, 32, .50) 48%,
+                rgba(5, 19, 32, .12) 100%
+            );
+        }
+
+        .slide-content {
+            position: relative;
+            z-index: 2;
+            width: 86%;
+            max-width: 1250px;
+            margin: auto;
+            padding: 40px 0;
+        }
+
+        .slide-label {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
             margin-bottom: 20px;
+            color: #e5eaf0;
         }
 
-        .hero p {
-            font-size: 20px;
-            margin-bottom: 30px;
+        .slide h1 {
+            font-size: clamp(36px, 5.2vw, 66px);
+            line-height: 1.12;
+            max-width: 760px;
+            margin-bottom: 22px;
+            font-weight: 700;
         }
 
-        .button {
+        .slide p {
+            max-width: 610px;
+            font-size: clamp(16px, 1.6vw, 19px);
+            margin-bottom: 32px;
+            color: #f1f4f7;
+        }
+
+        .quote-button {
             display: inline-block;
+            padding: 15px 27px;
             background: white;
-            color: #0b1f33;
-            padding: 14px 28px;
-            border-radius: 5px;
+            color: var(--navy);
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 14px;
+            border-radius: 3px;
+            transition: background .2s, color .2s;
         }
 
-        section {
-            padding: 70px 8%;
+        .quote-button:hover {
+            background: var(--navy);
+            color: white;
+            outline: 1px solid white;
         }
 
-        .section-title {
+        .carousel-arrow {
+            position: absolute;
+            z-index: 5;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 45px;
+            height: 45px;
+            border: 1px solid rgba(255,255,255,.7);
+            border-radius: 50%;
+            background: rgba(5,19,32,.25);
+            color: white;
+            font-size: 25px;
+            cursor: pointer;
+        }
+
+        .carousel-arrow:hover {
+            background: white;
+            color: var(--navy);
+        }
+
+        .previous {
+            left: 25px;
+        }
+
+        .next {
+            right: 25px;
+        }
+
+        .carousel-dots {
+            position: absolute;
+            z-index: 5;
+            bottom: 27px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .carousel-dots button {
+            width: 9px;
+            height: 9px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,.55);
+            cursor: pointer;
+        }
+
+        .carousel-dots button.active {
+            background: white;
+            width: 27px;
+            border-radius: 10px;
+        }
+
+        /* GENERAL SECTIONS */
+
+        section:not(.hero) {
+            padding: 85px 8%;
+        }
+
+        .section-heading {
+            max-width: 760px;
+            margin: 0 auto 48px;
             text-align: center;
-            margin-bottom: 45px;
         }
 
-        .section-title h2 {
-            font-size: 34px;
-            color: #0b1f33;
+        .section-heading h2 {
+            color: var(--navy);
+            font-size: clamp(28px, 3.5vw, 38px);
+            margin-bottom: 13px;
         }
 
-        .services {
+        .section-heading p {
+            color: var(--muted);
+            font-size: 16px;
+        }
+
+        /* SERVICES */
+
+        .services-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
+            gap: 22px;
+            max-width: 1200px;
+            margin: auto;
         }
 
         .service {
             padding: 30px;
-            border: 1px solid #e1e5e8;
-            border-radius: 8px;
-            background: #f8fafc;
+            border: 1px solid #e3e8ed;
+            background: white;
+            transition: transform .25s, box-shadow .25s;
+        }
+
+        .service:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(11,31,51,.08);
         }
 
         .service h3 {
-            color: #0b1f33;
+            color: var(--navy);
+            font-size: 19px;
             margin-bottom: 12px;
         }
 
+        .service p {
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        /* ABOUT */
+
         .about {
-            background: #f5f7f9;
+            background: var(--light);
             text-align: center;
         }
 
-        .about p {
+        .about-content {
             max-width: 850px;
             margin: auto;
         }
+
+        .about-content p {
+            color: #53616e;
+            font-size: 17px;
+        }
+
+        .slogan {
+            margin-top: 25px;
+            color: var(--navy);
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        /* CONTACT */
 
         .contact {
             text-align: center;
         }
 
-        footer {
-            background: #0b1f33;
-            color: white;
-            text-align: center;
-            padding: 25px;
+        .contact-content {
+            max-width: 750px;
+            margin: auto;
         }
 
-        @media (max-width: 800px) {
+        .contact-content > p {
+            color: var(--muted);
+            margin-bottom: 25px;
+        }
+
+        .contact-details {
+            margin: 25px 0;
+            line-height: 2;
+        }
+
+        .contact-details a {
+            color: var(--navy);
+            text-decoration: none;
+        }
+
+        .contact-button {
+            display: inline-block;
+            background: var(--navy);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 3px;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        /* FOOTER */
+
+        footer {
+            background: var(--navy);
+            color: white;
+            padding: 35px 8%;
+            text-align: center;
+        }
+
+        footer p {
+            font-size: 14px;
+            color: #dce3e9;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 22px;
+            margin: 20px 0;
+        }
+
+        .social-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 900px) {
             header {
                 flex-direction: column;
+                padding: 15px 5%;
+            }
+
+            nav {
+                flex-wrap: wrap;
+                justify-content: center;
                 gap: 15px;
             }
 
-            nav a {
-                margin: 0 8px;
+            .services-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
 
-            .hero h1 {
+            .hero {
+                min-height: 570px;
+            }
+
+            .slide-content {
+                width: 82%;
+            }
+        }
+
+        @media (max-width: 600px) {
+            header {
+                gap: 15px;
+            }
+
+            .brand-name {
+                font-size: 14px;
+            }
+
+            .logo-box img {
+                width: 55px;
+                height: 48px;
+            }
+
+            nav {
+                gap: 12px;
+            }
+
+            nav a {
+                font-size: 12px;
+            }
+
+            .hero {
+                height: 72vh;
+                min-height: 530px;
+            }
+
+            .slide {
+                background-position: center;
+            }
+
+            .slide::before {
+                background: linear-gradient(
+                    90deg,
+                    rgba(5,19,32,.78),
+                    rgba(5,19,32,.35)
+                );
+            }
+
+            .slide-content {
+                width: 82%;
+            }
+
+            .slide-label {
+                font-size: 11px;
+                letter-spacing: 2px;
+            }
+
+            .slide h1 {
                 font-size: 38px;
             }
 
-            .services {
+            .slide p {
+                font-size: 15px;
+            }
+
+            .carousel-arrow {
+                width: 36px;
+                height: 36px;
+                font-size: 20px;
+            }
+
+            .previous {
+                left: 10px;
+            }
+
+            .next {
+                right: 10px;
+            }
+
+            section:not(.hero) {
+                padding: 65px 7%;
+            }
+
+            .services-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -156,121 +498,274 @@
 <body>
 
     <header>
-        <div class="logo">NEXUS FONTES GROUP</div>
+        <div class="brand">
+            <div class="logo-box">
+                <img src="nfg-logo.jpeg" alt="Logo Nexus Fontes Group">
+            </div>
+            <div class="brand-name">NEXUS FONTES GROUP</div>
+        </div>
 
         <nav>
             <a href="#accueil">Accueil</a>
-            <a href="#services">Services</a>
+            <a href="#services">Expertises</a>
             <a href="#apropos">À propos</a>
             <a href="#contact">Contact</a>
         </nav>
     </header>
 
-    <section class="hero" id="accueil">
-        <div class="hero-content">
-            <h1>Nexus Fontes Group</h1>
+    <!-- CARROUSEL PRINCIPAL -->
 
+    <section class="hero" id="accueil">
+
+        <div class="slides">
+
+            <article class="slide active"
+                style="background-image: url('01-construction-genie-civil.jpeg')">
+                <div class="slide-content">
+                    <div class="slide-label">Nexus Fontes Group</div>
+                    <h1>Construction & génie civil</h1>
+                    <p>Des solutions de construction pensées pour concrétiser vos projets.</p>
+                    <a href="#contact" class="quote-button">Demander un devis</a>
+                </div>
+            </article>
+
+            <article class="slide"
+                style="background-image: url('02-architecture-amenagement-interieur.jpeg')">
+                <div class="slide-content">
+                    <div class="slide-label">Architecture intérieure</div>
+                    <h1>Architecture & aménagement intérieur</h1>
+                    <p>Des espaces conçus avec équilibre, fonctionnalité et élégance.</p>
+                    <a href="#contact" class="quote-button">Demander un devis</a>
+                </div>
+            </article>
+
+            <article class="slide"
+                style="background-image: url('03-renovation-maintenance.jpeg')">
+                <div class="slide-content">
+                    <div class="slide-label">Rénovation & entretien</div>
+                    <h1>Rénovation et maintenance</h1>
+                    <p>Remise en état, amélioration et entretien de vos bâtiments et équipements.</p>
+                    <a href="#contact" class="quote-button">Demander un devis</a>
+                </div>
+            </article>
+
+            <article class="slide"
+                style="background-image: url('04-energie-solaire-installations-techniques.jpeg')">
+                <div class="slide-content">
+                    <div class="slide-label">Énergie & équipements</div>
+                    <h1>Énergie solaire et solutions techniques</h1>
+                    <p>Des équipements adaptés à vos besoins énergétiques et techniques.</p>
+                    <a href="#contact" class="quote-button">Demander un devis</a>
+                </div>
+            </article>
+
+            <article class="slide"
+                style="background-image: url('05-videosurveillance.jpeg')">
+                <div class="slide-content">
+                    <div class="slide-label">Technologies de surveillance</div>
+                    <h1>Vidéosurveillance</h1>
+                    <p>Des systèmes de surveillance adaptés à vos espaces et à vos installations.</p>
+                    <a href="#contact" class="quote-button">Demander un devis</a>
+                </div>
+            </article>
+
+            <article class="slide"
+                style="background-image: url('06-materiaux-fournitures-construction.jpeg')">
+                <div class="slide-content">
+                    <div class="slide-label">Matériaux & équipements</div>
+                    <h1>Matériaux et fournitures de construction</h1>
+                    <p>Des matériaux et équipements pour accompagner vos travaux et aménagements.</p>
+                    <a href="#contact" class="quote-button">Demander un devis</a>
+                </div>
+            </article>
+
+        </div>
+
+        <button class="carousel-arrow previous" aria-label="Image précédente">&#10094;</button>
+        <button class="carousel-arrow next" aria-label="Image suivante">&#10095;</button>
+
+        <div class="carousel-dots" aria-label="Navigation du carrousel"></div>
+
+    </section>
+
+    <!-- EXPERTISES -->
+
+    <section id="services">
+
+        <div class="section-heading">
+            <h2>Nos domaines d'expertise</h2>
+            <p>Des prestations complémentaires pour répondre aux besoins de vos projets.</p>
+        </div>
+
+        <div class="services-grid">
+
+            <article class="service">
+                <h3>Construction & génie civil</h3>
+                <p>Construction de bâtiments et travaux de génie civil.</p>
+            </article>
+
+            <article class="service">
+                <h3>Architecture & aménagement intérieur</h3>
+                <p>Conception, agencement et aménagement des espaces intérieurs.</p>
+            </article>
+
+            <article class="service">
+                <h3>Rénovation et maintenance</h3>
+                <p>Travaux de rénovation, entretien et remise en état des installations.</p>
+            </article>
+
+            <article class="service">
+                <h3>Énergie solaire & installations techniques</h3>
+                <p>Solutions solaires et équipements techniques adaptés aux besoins des clients.</p>
+            </article>
+
+            <article class="service">
+                <h3>Vidéosurveillance</h3>
+                <p>Fourniture et installation de caméras et de systèmes de surveillance.</p>
+            </article>
+
+            <article class="service">
+                <h3>Matériaux & fournitures</h3>
+                <p>Vente de matériaux, équipements et accessoires pour la construction et l'aménagement.</p>
+            </article>
+
+        </div>
+    </section>
+
+    <!-- À PROPOS -->
+
+    <section class="about" id="apropos">
+        <div class="section-heading">
+            <h2>À propos de Nexus Fontes Group</h2>
+        </div>
+
+        <div class="about-content">
             <p>
-                Construction • Architecture • Solutions techniques
+                Nexus Fontes Group SARL intervient dans les domaines de la
+                construction, de l'architecture intérieure, de la rénovation,
+                des installations techniques et de la fourniture de matériaux.
+                Nous étudions les besoins de chaque client afin de proposer
+                des solutions adaptées à son projet.
             </p>
 
-            <a href="#contact" class="button">
-                Nous contacter
+            <div class="slogan">CONCRÉTISER VOS AMBITIONS</div>
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+
+    <section class="contact" id="contact">
+        <div class="section-heading">
+            <h2>Parlons de votre projet</h2>
+            <p>Présentez-nous votre besoin. Notre équipe l'étudiera afin de vous proposer une réponse adaptée.</p>
+        </div>
+
+        <div class="contact-content">
+            <div class="contact-details">
+                <p>
+                    <strong>Email :</strong>
+                    <a href="mailto:contact@nexusfontesgroup.com">
+                        contact@nexusfontesgroup.com
+                    </a>
+                </p>
+
+                <p>
+                    <strong>Téléphone RDC :</strong>
+                    <a href="tel:+243999120305">+243 999 120 305</a>
+                </p>
+
+                <p>
+                    <strong>Téléphone France :</strong>
+                    <a href="tel:+33743956549">+33 7 43 95 65 49</a>
+                </p>
+            </div>
+
+            <a href="mailto:contact@nexusfontesgroup.com?subject=Demande%20de%20devis"
+                class="contact-button">
+                Demander un devis
             </a>
         </div>
     </section>
 
-    <section id="services">
-        <div class="section-title">
-            <h2>Nos services</h2>
-        </div>
-
-        <div class="services">
-
-            <div class="service">
-                <h3>Construction & Génie civil</h3>
-                <p>
-                    Construction, rénovation, réhabilitation,
-                    entretien et aménagement des bâtiments et infrastructures.
-                </p>
-            </div>
-
-            <div class="service">
-                <h3>Architecture & Aménagement</h3>
-                <p>
-                    Architecture intérieure, décoration,
-                    agencement et conception d'espaces fonctionnels.
-                </p>
-            </div>
-
-            <div class="service">
-                <h3>Solutions techniques</h3>
-                <p>
-                    Solutions électriques, maintenance,
-                    énergie solaire et installations techniques.
-                </p>
-            </div>
-
-            <div class="service">
-                <h3>Sécurité & Technologies</h3>
-                <p>
-                    Installation de systèmes de vidéosurveillance
-                    et solutions technologiques adaptées.
-                </p>
-            </div>
-
-            <div class="service">
-                <h3>Maintenance</h3>
-                <p>
-                    Entretien et maintenance des équipements,
-                    installations et infrastructures.
-                </p>
-            </div>
-
-            <div class="service">
-                <h3>Matériaux & Fournitures</h3>
-                <p>
-                    Vente et distribution de matériaux et équipements
-                    destinés aux projets de construction.
-                </p>
-            </div>
-
-        </div>
-    </section>
-
-    <section class="about" id="apropos">
-        <div class="section-title">
-            <h2>À propos de nous</h2>
-        </div>
-
-        <p>
-            Nexus Fontes Group est une entreprise orientée vers la
-            construction, l'aménagement, les solutions techniques et
-            les services associés. Notre objectif est d'apporter des
-            solutions professionnelles, fiables et adaptées aux besoins
-            de nos clients.
-        </p>
-    </section>
-
-    <section class="contact" id="contact">
-        <div class="section-title">
-            <h2>Contactez-nous</h2>
-        </div>
-
-        <p>
-            Parlons de votre prochain projet.
-        </p>
-
-        <br>
-
-        <a href="mailto:contact@nexusfontesgroup.com" class="button">
-            Nous contacter
-        </a>
-    </section>
+    <!-- PIED DE PAGE -->
 
     <footer>
-        <p>© 2026 Nexus Fontes Group. Tous droits réservés.</p>
+        <p>NEXUS FONTES GROUP SARL</p>
+
+        <div class="social-links">
+            <a href="https://www.facebook.com/share/1F9zH8qutX/?mibextid=wwXIfr" target="_blank" rel="noopener">Facebook</a>
+            <a href="https://www.instagram.com/nexus_fontes_group?vrfl=N3NpOTJ0aG52NDV4&utm_source=qr" target="_blank" rel="noopener">Instagram</a>
+            <a href="https://www.linkedin.com/company/nexus-fontes-group/" target="_blank" rel="noopener">LinkedIn</a>
+            <a href="https://www.tiktok.com/@nexus.fontes.group?_r=1&_t=ZS-9B6kNO7YJN9" target="_blank" rel="noopener">TikTok</a>
+            <a href="https://x.com/nfg_sarl?s=11" target="_blank" rel="noopener">X</a>
+        </div>
+
+        <p>© 2026 Nexus Fontes Group SARL. Tous droits réservés.</p>
     </footer>
+
+    <script>
+        const slides = document.querySelectorAll(".slide");
+        const dotsContainer = document.querySelector(".carousel-dots");
+        const previousButton = document.querySelector(".previous");
+        const nextButton = document.querySelector(".next");
+
+        let currentSlide = 0;
+        let carouselTimer;
+
+        slides.forEach((slide, index) => {
+            const dot = document.createElement("button");
+            dot.setAttribute("aria-label", "Afficher l'image " + (index + 1));
+
+            dot.addEventListener("click", () => {
+                showSlide(index);
+                restartTimer();
+            });
+
+            dotsContainer.appendChild(dot);
+        });
+
+        const dots = dotsContainer.querySelectorAll("button");
+
+        function showSlide(index) {
+            slides[currentSlide].classList.remove("active");
+            dots[currentSlide].classList.remove("active");
+
+            currentSlide = (index + slides.length) % slides.length;
+
+            slides[currentSlide].classList.add("active");
+            dots[currentSlide].classList.add("active");
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        function startTimer() {
+            carouselTimer = setInterval(nextSlide, 6000);
+        }
+
+        function restartTimer() {
+            clearInterval(carouselTimer);
+            startTimer();
+        }
+
+        nextButton.addEventListener("click", () => {
+            nextSlide();
+            restartTimer();
+        });
+
+        previousButton.addEventListener("click", () => {
+            previousSlide();
+            restartTimer();
+        });
+
+        dots[0].classList.add("active");
+        startTimer();
+    </script>
 
 </body>
 </html>
