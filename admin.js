@@ -16,12 +16,29 @@ const ADMIN_UID = "12b93f40-0108-47a9-971a-9103a8b4ba9d";
 
 let currentProductImages = [];
 let currentProjectImages = [];
+let pendingProjectFiles = [];
 
 // ======================================================
 // OUTILS
 // ======================================================
 
 const $ = (id) => document.getElementById(id);
+const projectImageInput = $("projectImage");
+
+if (projectImageInput) {
+  projectImageInput.addEventListener("change", function () {
+    const selectedFiles = Array.from(this.files || []);
+
+    pendingProjectFiles.push(...selectedFiles);
+
+    this.value = "";
+
+    showMessage(
+      "projectMsg",
+      pendingProjectFiles.length + " photo(s) sélectionnée(s)."
+    );
+  });
+}
 
 function escapeHTML(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -485,7 +502,7 @@ $("projectForm").addEventListener("submit", async (event) => {
       throw new Error("Le titre et la catégorie sont obligatoires.");
     }
 
-    const files = Array.from($("projectImage").files || []);
+   const files = [...pendingProjectFiles];
 
     const newImages = await uploadMultiplePhotos(files, "projets");
 
