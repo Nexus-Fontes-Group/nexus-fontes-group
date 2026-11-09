@@ -883,3 +883,25 @@ footer {
     grid-template-columns: 1fr;
   }
 }
+/* SIGNATURE DU DIRECTEUR GENERAL */
+.director {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(185, 154, 91, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.director strong {
+  color: #10243a;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.director span {
+  color: #687586;
+  font-size: 13px;
+  font-weight: 500;
+}
