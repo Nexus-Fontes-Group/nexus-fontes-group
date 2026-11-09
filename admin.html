@@ -1,132 +1,657 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Administration | NFG</title>
-<style>
-:root{--navy:#10243d;--gold:#b9975b;--line:#e5e8ec}
-*{box-sizing:border-box}
-body{margin:0;background:#f4f6f8;color:#182331;font:16px Arial,sans-serif}
-header{background:var(--navy);color:white;padding:25px}
-header p{color:#e2e6eb}
-main{max-width:1100px;margin:28px auto;padding:0 16px}
-.panel{background:white;border:1px solid var(--line);border-radius:10px;padding:22px;margin:18px 0}
-h2{color:var(--navy);margin-top:0}
-h3{color:var(--navy)}
-label{display:block;font-weight:600;margin-top:10px}
-input,textarea,select{width:100%;padding:12px;margin:7px 0 14px;border:1px solid #ccd2d9;border-radius:5px;font:inherit;background:white}
-input[type=checkbox]{width:auto}
-button{background:var(--navy);color:white;border:0;border-radius:5px;padding:12px 18px;cursor:pointer;margin:4px}
-button:hover{opacity:.9}
-button.secondary{background:#687585}
-button.danger{background:#a83232}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-.item{border:1px solid var(--line);border-radius:8px;padding:15px;margin:12px 0;background:#fff}
-.item img{max-width:180px;max-height:140px;object-fit:cover;display:block;margin:8px 0}
-.hidden{display:none}
-.muted{color:#65717e}
-.status{padding:8px 0}
-.actions{display:flex;flex-wrap:wrap;gap:6px}
-@media(max-width:600px){main{margin:15px auto}.panel{padding:15px}header{padding:18px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Administration | Nexus Fontes Group</title>
+
+  <style>
+    :root {
+      --navy: #10243a;
+      --navy-light: #183752;
+      --gold: #b99a5b;
+      --white: #ffffff;
+      --background: #f4f6f9;
+      --text: #263445;
+      --muted: #687586;
+      --border: #dfe4ea;
+      --success: #18834a;
+      --danger: #c0392b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .login-page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--white);
+      padding: 35px;
+      border-radius: 12px;
+      box-shadow: 0 10px 35px rgba(16, 36, 58, .08);
+    }
+
+    .login-card h1 {
+      color: var(--navy);
+      font-size: 24px;
+      margin: 0 0 8px;
+    }
+
+    .login-card p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 25px;
+    }
+
+    .brand {
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+    }
+
+    .admin-header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 20px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .admin-header h1 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .admin-header p {
+      margin: 5px 0 0;
+      color: #cbd5df;
+      font-size: 13px;
+    }
+
+    .admin-container {
+      max-width: 1250px;
+      margin: 30px auto;
+      padding: 0 20px 50px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+
+    .tab-button {
+      background: white;
+      border: 1px solid var(--border);
+      color: var(--navy);
+      padding: 11px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .tab-button.active {
+      background: var(--navy);
+      color: white;
+      border-color: var(--navy);
+    }
+
+    .panel {
+      display: none;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 18px rgba(16, 36, 58, .04);
+      margin-bottom: 25px;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .panel h2 {
+      color: var(--navy);
+      margin-top: 0;
+      font-size: 21px;
+    }
+
+    .panel-intro {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      color: var(--navy);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      background: white;
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--gold);
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+    }
+
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .checkbox-field label {
+      font-weight: 500;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 11px 17px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #e9edf2;
+      color: var(--navy);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: white;
+    }
+
+    .btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .message.error {
+      color: var(--danger);
+    }
+
+    .message.success {
+      color: var(--success);
+    }
+
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 25px;
+    }
+
+    .admin-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      min-width: 0;
+    }
+
+    .admin-item img {
+      width: 100%;
+      height: 165px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .admin-item h3 {
+      color: var(--navy);
+      font-size: 17px;
+      margin: 5px 0 8px;
+    }
+
+    .admin-item p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 5px 0 10px;
+      background: #edf0f3;
+      color: var(--navy);
+    }
+
+    .status.published,
+    .status.approved {
+      background: #e4f5eb;
+      color: var(--success);
+    }
+
+    .status.pending {
+      background: #fff3d9;
+      color: #956500;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      padding: 18px 0;
+      text-align: center;
+    }
+
+    .section-divider {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 30px 0;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .top-actions button {
+      white-space: nowrap;
+    }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 650px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .admin-container {
+        padding: 0 12px 35px;
+      }
+
+      .login-card {
+        padding: 25px;
+      }
+
+      .admin-header {
+        padding: 18px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<header>
-<h1>NFG · Espace d’administration</h1>
-<p>Gestion des produits, projets, fournisseurs, demandes et témoignages.</p>
-</header>
 
-<main>
-<section id="login" class="panel">
-<h2>Connexion administrateur</h2>
-<label>Adresse e-mail</label>
-<input id="email" type="email" autocomplete="username">
-<label>Mot de passe</label>
-<input id="password" type="password" autocomplete="current-password">
-<button id="loginBtn" type="button">Se connecter</button>
-<p id="loginMsg" class="status" role="status"></p>
-</section>
+  <!-- CONNEXION -->
+  <section class="login-page" id="loginSection">
+    <div class="login-card">
+      <div class="brand">NEXUS FONTES GROUP</div>
+      <h1>Espace administration</h1>
+      <p>Connectez-vous pour gérer les contenus du site officiel.</p>
 
-<section id="app" class="hidden">
-<div class="panel">
-<button id="logout" class="secondary" type="button">Se déconnecter</button>
-<h2>Gestion des produits</h2>
-<form id="productForm">
-<input type="hidden" id="productId">
-<div class="grid">
-<div><label>Nom du produit *</label><input id="pname" required></div>
-<div><label>Catégorie *</label><select id="pcat" required><option value="">Chargement...</option></select></div>
-<div><label>Prix</label><input id="pprice" type="number" min="0" step="0.01"></div>
-<div><label>Devise</label><select id="pcurrency"><option>USD</option><option>CDF</option></select></div>
-<div><label>Référence</label><input id="preference"></div>
-<div><label>Quantité en stock</label><input id="pstock" type="number" min="0" step="1" value="1"></div>
-</div>
-<label>Description</label>
-<textarea id="pdesc" rows="4"></textarea>
-<label>Photo du produit</label>
-<input id="pimage" type="file" accept="image/jpeg,image/png,image/webp">
-<label><input id="ppublished" type="checkbox" checked> Publier le produit</label>
-<div class="actions">
-<button type="submit">Enregistrer le produit</button>
-<button type="button" id="resetProduct" class="secondary">Annuler / Vider</button>
-</div>
-<p id="productMsg" class="status" role="status"></p>
-</form>
-</div>
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Adresse e-mail</label>
+          <input type="email" id="email" required autocomplete="username">
+        </div>
 
-<div class="panel">
-<h2>Catalogue des produits</h2>
-<div id="products">Chargement...</div>
-</div>
+        <div class="field" style="margin-top:15px;">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" required autocomplete="current-password">
+        </div>
 
-<div class="panel">
-<h2>Gestion des projets</h2>
-<form id="projectForm">
-<input type="hidden" id="projectId">
-<label>Titre du projet *</label>
-<input id="projectTitle" required>
-<div class="grid">
-<div><label>Emplacement</label><input id="projectLocation" placeholder="Ex. Kinshasa, Gombe"></div>
-<div><label>Catégorie</label><input id="projectCategory" placeholder="Ex. Construction, architecture"></div>
-</div>
-<label>Description</label>
-<textarea id="projectDesc" rows="4"></textarea>
-<label>Photo du projet</label>
-<input id="projectImage" type="file" accept="image/jpeg,image/png,image/webp">
-<label><input id="projectPublished" type="checkbox" checked> Publier le projet</label>
-<div class="actions">
-<button type="submit">Enregistrer le projet</button>
-<button type="button" id="resetProject" class="secondary">Annuler / Vider</button>
-</div>
-<p id="projectMsg" class="status" role="status"></p>
-</form>
-</div>
+        <button class="btn btn-primary" id="loginBtn" type="submit"
+          style="width:100%; margin-top:20px;">
+          Se connecter
+        </button>
 
-<div class="panel">
-<h2>Portfolio des projets</h2>
-<div id="projectList">Chargement...</div>
-</div>
+        <div id="loginMsg" class="message" aria-live="polite"></div>
+      </form>
+    </div>
+  </section>
 
-<div class="panel">
-<h2>Candidatures fournisseurs</h2>
-<div id="suppliers">Chargement...</div>
-</div>
+  <!-- ESPACE ADMIN -->
+  <div id="app" hidden>
 
-<div class="panel">
-<h2>Demandes de contact</h2>
-<div id="inquiries">Chargement...</div>
-</div>
+    <header class="admin-header">
+      <div>
+        <h1>Nexus Fontes Group</h1>
+        <p>Tableau de bord d'administration</p>
+      </div>
 
-<div class="panel">
-<h2>Avis clients</h2>
-<div id="reviews">Chargement...</div>
-</div>
-</section>
-</main>
+      <div class="top-actions">
+        <button class="btn btn-secondary" id="logoutBtn" type="button">
+          Déconnexion
+        </button>
+      </div>
+    </header>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nfg-config.js"></script>
-<script src="admin.js"></script>
+    <main class="admin-container">
+
+      <!-- NAVIGATION -->
+      <nav class="tabs" aria-label="Sections d'administration">
+        <button class="tab-button active" type="button" data-tab="productsPanel">
+          Produits
+        </button>
+
+        <button class="tab-button" type="button" data-tab="projectsPanel">
+          Projets
+        </button>
+
+        <button class="tab-button" type="button" data-tab="suppliersPanel">
+          Fournisseurs
+        </button>
+
+        <button class="tab-button" type="button" data-tab="inquiriesPanel">
+          Messages
+        </button>
+
+        <button class="tab-button" type="button" data-tab="reviewsPanel">
+          Témoignages
+        </button>
+      </nav>
+
+      <!-- PRODUITS -->
+      <section class="panel active" id="productsPanel">
+        <h2>Gestion des produits</h2>
+        <p class="panel-intro">
+          Ajoutez, modifiez et publiez les produits disponibles dans la marketplace.
+        </p>
+
+        <form id="productForm">
+          <input type="hidden" id="productId">
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="pname">Nom du produit *</label>
+              <input id="pname" type="text" required>
+            </div>
+
+            <div class="field">
+              <label for="pcat">Catégorie *</label>
+              <select id="pcat" required>
+                <option value="">Chargement des catégories...</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="pprice">Prix</label>
+              <input id="pprice" type="number" min="0" step="0.01">
+            </div>
+
+            <div class="field">
+              <label for="pcurrency">Devise</label>
+              <select id="pcurrency">
+                <option value="USD">USD ($)</option>
+                <option value="CDF">CDF (FC)</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="preference">Référence</label>
+              <input id="preference" type="text">
+            </div>
+
+            <div class="field">
+              <label for="pstock">Quantité en stock</label>
+              <input id="pstock" type="number" min="0" step="1" value="0">
+            </div>
+
+            <div class="field full">
+              <label for="pdesc">Description du produit</label>
+              <textarea id="pdesc"></textarea>
+            </div>
+
+            <div class="field full">
+              <label for="pimage">Photo du produit</label>
+              <input id="pimage" type="file" accept="image/*">
+              <p class="small-note">
+                Pour modifier un produit, laissez ce champ vide si vous souhaitez conserver sa photo actuelle.
+              </p>
+            </div>
+
+          </div>
+
+          <div class="checkbox-field">
+            <input id="ppublished" type="checkbox">
+            <label for="ppublished">Publier ce produit sur le site</label>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" type="submit" id="saveProduct">
+              Enregistrer le produit
+            </button>
+
+            <button class="btn btn-secondary" type="button" id="resetProduct">
+              Réinitialiser
+            </button>
+          </div>
+
+          <div id="productMsg" class="message" aria-live="polite"></div>
+        </form>
+
+        <hr class="section-divider">
+
+        <h2>Produits enregistrés</h2>
+        <div id="products" class="items-grid">
+          <p class="empty-state">Chargement des produits...</p>
+        </div>
+      </section>
+
+      <!-- PROJETS -->
+      <section class="panel" id="projectsPanel">
+        <h2>Gestion des projets</h2>
+        <p class="panel-intro">
+          Présentez les projets de Nexus Fontes Group. Vous pouvez ajouter plusieurs photos à un même projet.
+        </p>
+
+        <form id="projectForm">
+          <input type="hidden" id="projectId">
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="projectTitle">Titre du projet *</label>
+              <input id="projectTitle" type="text" required>
+            </div>
+
+            <div class="field">
+              <label for="projectLocation">Localisation</label>
+              <input id="projectLocation" type="text" placeholder="Ex. Kinshasa, RDC">
+            </div>
+
+            <div class="field full">
+              <label for="projectCategory">Catégorie du projet *</label>
+              <select id="projectCategory" required>
+                <option value="">Choisir une catégorie</option>
+                <option value="Conception 3D">Conception 3D</option>
+                <option value="Proposition architecturale">Proposition architecturale</option>
+                <option value="Projet en cours">Projet en cours</option>
+                <option value="Réalisation terminée">Réalisation terminée</option>
+                <option value="Rénovation et transformation">Rénovation et transformation</option>
+              </select>
+            </div>
+
+            <div class="field full">
+              <label for="projectDesc">Description du projet</label>
+              <textarea id="projectDesc"></textarea>
+            </div>
+
+            <div class="field full">
+              <label for="projectImage">Photos du projet</label>
+              <input id="projectImage" type="file" accept="image/*" multiple>
+              <p class="small-note">
+                Vous pouvez sélectionner plusieurs photos. Lors d'une modification, les nouvelles photos seront ajoutées aux photos déjà enregistrées.
+              </p>
+            </div>
+
+          </div>
+
+          <div class="checkbox-field">
+            <input id="projectPublished" type="checkbox">
+            <label for="projectPublished">Publier ce projet sur le site</label>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" type="submit" id="saveProject">
+              Enregistrer le projet
+            </button>
+
+            <button class="btn btn-secondary" type="button" id="resetProject">
+              Réinitialiser
+            </button>
+          </div>
+
+          <div id="projectMsg" class="message" aria-live="polite"></div>
+        </form>
+
+        <hr class="section-divider">
+
+        <h2>Projets enregistrés</h2>
+        <div id="projectList" class="items-grid">
+          <p class="empty-state">Chargement des projets...</p>
+        </div>
+      </section>
+
+      <!-- FOURNISSEURS -->
+      <section class="panel" id="suppliersPanel">
+        <h2>Candidatures des fournisseurs</h2>
+        <p class="panel-intro">
+          Consultez les entreprises qui souhaitent rejoindre la marketplace de NFG.
+        </p>
+
+        <div id="suppliers" class="items-grid">
+          <p class="empty-state">Chargement des candidatures...</p>
+        </div>
+      </section>
+
+      <!-- MESSAGES -->
+      <section class="panel" id="inquiriesPanel">
+        <h2>Messages des clients</h2>
+        <p class="panel-intro">
+          Retrouvez ici les demandes envoyées depuis le formulaire de contact du site.
+        </p>
+
+        <div id="inquiries" class="items-grid">
+          <p class="empty-state">Chargement des messages...</p>
+        </div>
+      </section>
+
+      <!-- TÉMOIGNAGES -->
+      <section class="panel" id="reviewsPanel">
+        <h2>Gestion des témoignages</h2>
+        <p class="panel-intro">
+          Consultez les témoignages reçus et validez ceux qui peuvent être affichés publiquement sur le site.
+        </p>
+
+        <div id="reviews" class="items-grid">
+          <p class="empty-state">Chargement des témoignages...</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="nfg-config.js"></script>
+  <script src="admin.js"></script>
+
 </body>
 </html>
