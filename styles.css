@@ -764,14 +764,15 @@ footer {
     font-size: 14px;
   }
 
-  .hero {
-    height: 72vh;
-    min-height: 530px;
-  }
+ .hero {
+  height: 420px;
+  min-height: 420px;
+}
 
-  .slide {
-    background-position: center;
-  }
+.slide {
+  background-position: center center;
+  background-size: cover;
+}
 
   .hero-text {
     width: 82%;
