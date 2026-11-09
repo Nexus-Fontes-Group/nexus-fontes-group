@@ -1,24 +1,27 @@
-/* =====================================================
-   NFG - ADMINISTRATION
-   Produits, projets, fournisseurs, contacts et avis
-===================================================== */
+// ======================================================
+// NEXUS FONTES GROUP - ADMINISTRATION
+// ======================================================
 
-const db = window.supabase.createClient(
-  window.NFG_SUPABASE_URL,
-  window.NFG_SUPABASE_ANON_KEY
-);
+const SUPABASE_URL = window.NFG_SUPABASE_URL;
+const SUPABASE_KEY = window.NFG_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  alert("Configuration Supabase introuvable. Vérifiez nfg-config.js.");
+}
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// UID autorisé à accéder à l'administration
+const ADMIN_UID = "12b93f40-0108-47a9-971a-9103a8b4ba9d";
+
+let currentProductImages = [];
+let currentProjectImages = [];
+
+// ======================================================
+// OUTILS
+// ======================================================
 
 const $ = (id) => document.getElementById(id);
-
-let currentProducts = [];
-let currentProjects = [];
-
-function message(id, text, error = false) {
-  const el = $(id);
-  if (!el) return;
-  el.textContent = text;
-  el.style.color = error ? "#b42318" : "#18794e";
-}
 
 function escapeHTML(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -30,112 +33,172 @@ function escapeHTML(value) {
   })[char]);
 }
 
-function showApp(session) {
-  $("login")?.classList.toggle("hidden", !!session);
-  $("app")?.classList.toggle("hidden", !session);
+function showMessage(id, message, type = "success") {
+  const element = $(id);
+  if (!element) return;
 
-  if (session) {
-    loadCategories();
-    loadProducts();
-    loadProjects();
-    loadOtherSections();
+  element.textContent = message;
+  element.className = `message ${type}`;
+}
+
+function formatDate(value) {
+  if (!value) return "Date non disponible";
+
+  return new Date(value).toLocaleString("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
+function setLoading(buttonId, loading, text = "Enregistrement...") {
+  const button = $(buttonId);
+  if (!button) return;
+
+  if (loading) {
+    button.dataset.originalText = button.textContent;
+    button.textContent = text;
+    button.disabled = true;
+  } else {
+    button.textContent = button.dataset.originalText || "Enregistrer";
+    button.disabled = false;
   }
 }
 
-/* CONNEXION */
+function imageHTML(url, alt = "Photo") {
+  if (!url) return "";
 
-$("loginBtn")?.addEventListener("click", async () => {
-  const email = $("email")?.value.trim();
-  const password = $("password")?.value;
+  return `
+    <img
+      src="${escapeHTML(url)}"
+      alt="${escapeHTML(alt)}"
+      loading="lazy"
+      onerror="this.style.display='none'"
+    >
+  `;
+}
 
-  if (!email || !password) {
-    message("loginMsg", "Saisis ton e-mail et ton mot de passe.", true);
+function getErrorMessage(error) {
+  return error?.message || "Une erreur est survenue.";
+}
+
+// ======================================================
+// AUTHENTIFICATION
+// ======================================================
+
+async function checkAdminSession() {
+  const { data, error } = await db.auth.getSession();
+
+  if (error) {
+    console.error(error);
     return;
   }
 
-  message("loginMsg", "Connexion en cours...");
+  const session = data.session;
+
+  if (session && session.user.id === ADMIN_UID) {
+    showAdmin();
+  } else {
+    showLogin();
+  }
+}
+
+function showAdmin() {
+  $("loginSection").hidden = true;
+  $("app").hidden = false;
+
+  loadCategories();
+  loadProducts();
+  loadProjects();
+  loadSuppliers();
+  loadMessages();
+  loadTestimonials();
+}
+
+function showLogin() {
+  $("loginSection").hidden = false;
+  $("app").hidden = true;
+}
+
+$("loginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+
+  $("loginBtn").disabled = true;
+  $("loginBtn").textContent = "Connexion...";
 
   const { data, error } = await db.auth.signInWithPassword({
     email,
     password
   });
 
+  $("loginBtn").disabled = false;
+  $("loginBtn").textContent = "Se connecter";
+
   if (error) {
-    message("loginMsg", error.message, true);
+    showMessage("loginMsg", getErrorMessage(error), "error");
     return;
   }
 
-  message("loginMsg", "Connexion réussie.");
-  showApp(data.session);
+  if (data.user.id !== ADMIN_UID) {
+    await db.auth.signOut();
+
+    showMessage(
+      "loginMsg",
+      "Ce compte n'est pas autorisé à accéder à l'administration.",
+      "error"
+    );
+
+    return;
+  }
+
+  $("loginMsg").textContent = "";
+  showAdmin();
 });
 
-$("logout")?.addEventListener("click", async () => {
+$("logoutBtn").addEventListener("click", async () => {
   await db.auth.signOut();
-  showApp(null);
+  showLogin();
 });
 
-/* CATÉGORIES */
+// ======================================================
+// NAVIGATION ENTRE LES SECTIONS
+// ======================================================
 
-async function loadCategories() {
-  const field = $("pcat");
-  if (!field || field.tagName !== "SELECT") return;
+document.querySelectorAll(".tab-button").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".tab-button").forEach((item) => {
+      item.classList.remove("active");
+    });
 
-  const { data, error } = await db
-    .from("categories")
-    .select("id,name")
-    .eq("is_active", true)
-    .order("name");
+    document.querySelectorAll(".panel").forEach((panel) => {
+      panel.classList.remove("active");
+    });
 
-  if (error) {
-    message("productMsg", "Impossible de charger les catégories : " + error.message, true);
-    return;
-  }
+    button.classList.add("active");
 
-  const previous = field.value;
-  field.innerHTML = '<option value="">Choisir une catégorie</option>';
-
-  (data || []).forEach((category) => {
-    const option = document.createElement("option");
-    option.value = category.id;
-    option.textContent = category.name;
-    field.appendChild(option);
+    const panel = $(button.dataset.tab);
+    if (panel) panel.classList.add("active");
   });
+});
 
-  if (previous) field.value = previous;
-}
-
-async function getCategoryId() {
-  const field = $("pcat");
-  if (!field || !field.value.trim()) return null;
-
-  if (field.tagName === "SELECT") return field.value;
-
-  const { data, error } = await db
-    .from("categories")
-    .select("id")
-    .ilike("name", field.value.trim())
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data?.id || null;
-}
-
-/* PHOTOS */
+// ======================================================
+// STOCKAGE DES PHOTOS
+// ======================================================
 
 async function uploadPhoto(file, folder) {
   if (!file) return null;
 
-  const extension = file.name.split(".").pop().toLowerCase();
-  const allowed = ["jpg", "jpeg", "png", "webp", "svg"];
-
-  if (!allowed.includes(extension)) {
-    throw new Error("Format de photo non autorisé.");
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Le fichier sélectionné doit être une image.");
   }
 
+  const extension = file.name.split(".").pop().toLowerCase();
+  const safeExtension = /^[a-z0-9]+$/.test(extension) ? extension : "jpg";
+
   const fileName =
-    folder + "/" + Date.now() + "-" +
-    Math.random().toString(36).slice(2) + "." + extension;
+    `${folder}/${Date.now()}-${crypto.randomUUID()}.${safeExtension}`;
 
   const { error } = await db.storage
     .from("nfg-images")
@@ -153,13 +216,136 @@ async function uploadPhoto(file, folder) {
   return data.publicUrl;
 }
 
-/* PRODUITS */
+async function uploadMultiplePhotos(files, folder) {
+  const urls = [];
+
+  for (const file of files) {
+    const url = await uploadPhoto(file, folder);
+    if (url) urls.push(url);
+  }
+
+  return urls;
+}
+
+// ======================================================
+// CATÉGORIES DE LA MARKETPLACE
+// ======================================================
+
+async function loadCategories() {
+  const select = $("pcat");
+
+  const { data, error } = await db
+    .from("categories")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name");
+
+  if (error) {
+    console.error("Erreur catégories :", error);
+    select.innerHTML = `<option value="">Erreur de chargement</option>`;
+    return;
+  }
+
+  select.innerHTML = `<option value="">Choisir une catégorie</option>`;
+
+  (data || []).forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category.id;
+    option.textContent = category.name;
+    select.appendChild(option);
+  });
+}
+
+// ======================================================
+// PRODUITS : RÉINITIALISATION
+// ======================================================
+
+function resetProductForm() {
+  $("productForm").reset();
+  $("productId").value = "";
+  $("pstock").value = "0";
+  $("ppublished").checked = false;
+  $("productMsg").textContent = "";
+  currentProductImages = [];
+}
+
+$("resetProduct").addEventListener("click", resetProductForm);
+
+// ======================================================
+// PRODUITS : ENREGISTREMENT
+// ======================================================
+
+$("productForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  setLoading("saveProduct", true);
+
+  try {
+    const id = $("productId").value;
+
+    const product = {
+      name: $("pname").value.trim(),
+      description: $("pdesc").value.trim(),
+      price: $("pprice").value ? Number($("pprice").value) : null,
+      currency: $("pcurrency").value,
+      category_id: $("pcat").value || null,
+      reference: $("preference").value.trim() || null,
+      stock_quantity: Number($("pstock").value || 0),
+      is_published: $("ppublished").checked
+    };
+
+    if (!product.name) {
+      throw new Error("Le nom du produit est obligatoire.");
+    }
+
+    const imageFile = $("pimage").files[0];
+
+    let images = currentProductImages;
+
+    if (imageFile) {
+      const newImage = await uploadPhoto(imageFile, "marketplace");
+      images = [newImage];
+    }
+
+    product.image_urls = images;
+
+    let result;
+
+    if (id) {
+      result = await db
+        .from("products")
+        .update(product)
+        .eq("id", id);
+    } else {
+      result = await db
+        .from("products")
+        .insert(product);
+    }
+
+    if (result.error) throw result.error;
+
+    showMessage(
+      "productMsg",
+      id ? "Produit modifié avec succès." : "Produit ajouté avec succès."
+    );
+
+    resetProductForm();
+    await loadProducts();
+
+  } catch (error) {
+    console.error(error);
+    showMessage("productMsg", getErrorMessage(error), "error");
+  } finally {
+    setLoading("saveProduct", false);
+  }
+});
+
+// ======================================================
+// PRODUITS : AFFICHAGE
+// ======================================================
 
 async function loadProducts() {
   const container = $("products");
-  if (!container) return;
-
-  container.textContent = "Chargement des produits...";
 
   const { data, error } = await db
     .from("products")
@@ -167,141 +353,184 @@ async function loadProducts() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    container.textContent = "Erreur : " + error.message;
+    container.innerHTML = `<p class="empty-state">Erreur : ${escapeHTML(error.message)}</p>`;
     return;
   }
 
-  currentProducts = data || [];
-
-  if (!currentProducts.length) {
-    container.textContent = "Aucun produit enregistré.";
+  if (!data || data.length === 0) {
+    container.innerHTML = `<p class="empty-state">Aucun produit enregistré.</p>`;
     return;
   }
 
-  container.innerHTML = currentProducts.map((p) => {
-    const name = p.name ?? p.Nom ?? "Produit sans nom";
-    const images = Array.isArray(p.image_urls) ? p.image_urls : [];
-    const image = images[0] || "";
+  container.innerHTML = data.map((product) => {
+    const image = product.image_urls?.[0] || "";
 
     return `
-      <div class="item">
-        ${image ? `<img src="${escapeHTML(image)}" alt="">` : ""}
-        <h3>${escapeHTML(name)}</h3>
-        <p>${escapeHTML(p.description ?? p.Description ?? "")}</p>
-        <p>Prix : ${escapeHTML(p.price ?? p.Prix ?? "Non précisé")}
-        ${escapeHTML(p.currency ?? p.Monnaie ?? "USD")}</p>
-        <p>Statut : ${p.is_published ? "Publié" : "Non publié"}</p>
-        <button type="button" onclick="editProduct('${p.id}')">Modifier</button>
-        <button type="button" class="secondary" onclick="deleteProduct('${p.id}')">Supprimer</button>
-      </div>
+      <article class="admin-item">
+        ${imageHTML(image, product.name)}
+
+        <h3>${escapeHTML(product.name)}</h3>
+
+        <p>${escapeHTML(product.description || "Sans description")}</p>
+
+        <p>
+          Prix : ${product.price ?? "Sur demande"}
+          ${escapeHTML(product.currency || "")}
+        </p>
+
+        <p>Stock : ${Number(product.stock_quantity || 0)}</p>
+
+        <span class="status ${product.is_published ? "published" : "pending"}">
+          ${product.is_published ? "Publié" : "Non publié"}
+        </span>
+
+        <div class="actions">
+          <button class="btn btn-secondary" data-edit-product="${escapeHTML(product.id)}">
+            Modifier
+          </button>
+
+          <button class="btn btn-danger" data-delete-product="${escapeHTML(product.id)}">
+            Supprimer
+          </button>
+        </div>
+      </article>
     `;
   }).join("");
+
+  container.querySelectorAll("[data-edit-product]").forEach((button) => {
+    button.addEventListener("click", () => {
+      editProduct(data.find((item) => item.id === button.dataset.editProduct));
+    });
+  });
+
+  container.querySelectorAll("[data-delete-product]").forEach((button) => {
+    button.addEventListener("click", () => {
+      deleteProduct(button.dataset.deleteProduct);
+    });
+  });
 }
 
-$("productForm")?.addEventListener("submit", async (event) => {
-  event.preventDefault();
+function editProduct(product) {
+  if (!product) return;
 
-  const id = $("productId")?.value;
-  const name = $("pname")?.value.trim();
+  $("productId").value = product.id;
+  $("pname").value = product.name || "";
+  $("pdesc").value = product.description || "";
+  $("pprice").value = product.price ?? "";
+  $("pcurrency").value = product.currency || "USD";
+  $("pcat").value = product.category_id || "";
+  $("preference").value = product.reference || "";
+  $("pstock").value = product.stock_quantity ?? 0;
+  $("ppublished").checked = Boolean(product.is_published);
 
-  if (!name) {
-    message("productMsg", "Le nom du produit est obligatoire.", true);
+  currentProductImages = product.image_urls || [];
+
+  $("productMsg").textContent =
+    "Modification du produit : " + product.name;
+
+  $("productsPanel").scrollIntoView({ behavior: "smooth" });
+}
+
+async function deleteProduct(id) {
+  if (!confirm("Voulez-vous vraiment supprimer ce produit ?")) return;
+
+  const { error } = await db
+    .from("products")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Erreur : " + error.message);
     return;
   }
 
-  message("productMsg", "Enregistrement en cours...");
+  await loadProducts();
+}
+
+// ======================================================
+// PROJETS : RÉINITIALISATION
+// ======================================================
+
+function resetProjectForm() {
+  $("projectForm").reset();
+  $("projectId").value = "";
+  $("projectPublished").checked = false;
+  $("projectMsg").textContent = "";
+  currentProjectImages = [];
+}
+
+$("resetProject").addEventListener("click", resetProjectForm);
+
+// ======================================================
+// PROJETS : ENREGISTREMENT AVEC PLUSIEURS PHOTOS
+// ======================================================
+
+$("projectForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  setLoading("saveProject", true);
 
   try {
-    const categoryId = await getCategoryId();
-    const oldProduct = currentProducts.find((p) => p.id === id);
+    const id = $("projectId").value;
 
-    let images = oldProduct?.image_urls || [];
-    const file = $("pimage")?.files?.[0];
+    const project = {
+      title: $("projectTitle").value.trim(),
+      location: $("projectLocation").value.trim(),
+      category: $("projectCategory").value,
+      description: $("projectDesc").value.trim(),
+      is_published: $("projectPublished").checked
+    };
 
-    if (file) {
-      const url = await uploadPhoto(file, "marketplace");
-      images = [url];
+    if (!project.title || !project.category) {
+      throw new Error("Le titre et la catégorie sont obligatoires.");
     }
 
-    const product = {
-      name,
-      description: $("pdesc")?.value.trim() || "",
-      price: $("pprice")?.value ? Number($("pprice").value) : null,
-      currency: $("pcurrency")?.value || "USD",
-      category_id: categoryId,
-      reference: oldProduct?.reference || null,
-      stock_quantity: oldProduct?.stock_quantity ?? 1,
-      image_urls: images,
-      is_published: $("ppublished")?.checked ?? true
-    };
+    const files = Array.from($("projectImage").files || []);
+
+    const newImages = await uploadMultiplePhotos(files, "projets");
+
+    project.image_urls = [
+      ...currentProjectImages,
+      ...newImages
+    ];
 
     let result;
 
     if (id) {
-      result = await db.from("products").update(product).eq("id", id);
+      result = await db
+        .from("projects")
+        .update(project)
+        .eq("id", id);
     } else {
-      result = await db.from("products").insert(product);
+      result = await db
+        .from("projects")
+        .insert(project);
     }
 
     if (result.error) throw result.error;
 
-    message("productMsg", "Produit enregistré avec succès.");
-    $("productForm").reset();
-    if ($("productId")) $("productId").value = "";
-    await loadProducts();
+    showMessage(
+      "projectMsg",
+      id ? "Projet modifié avec succès." : "Projet ajouté avec succès."
+    );
+
+    resetProjectForm();
+    await loadProjects();
 
   } catch (error) {
-    message("productMsg", "Erreur : " + error.message, true);
+    console.error(error);
+    showMessage("projectMsg", getErrorMessage(error), "error");
+  } finally {
+    setLoading("saveProject", false);
   }
 });
 
-window.editProduct = function(id) {
-  const p = currentProducts.find((item) => item.id === id);
-  if (!p) return;
-
-  $("productId").value = p.id;
-  $("pname").value = p.name ?? p.Nom ?? "";
-  $("pprice").value = p.price ?? p.Prix ?? "";
-  $("pcurrency").value = p.currency ?? p.Monnaie ?? "USD";
-  $("pdesc").value = p.description ?? p.Description ?? "";
-
-  if ($("pcat")?.tagName === "SELECT") {
-    $("pcat").value = p.category_id || "";
-  }
-
-  if ($("ppublished")) $("ppublished").checked = !!p.is_published;
-
-  message("productMsg", "Produit chargé. Tu peux le modifier.");
-  $("productForm").scrollIntoView({ behavior: "smooth" });
-};
-
-window.deleteProduct = async function(id) {
-  if (!confirm("Supprimer définitivement ce produit ?")) return;
-
-  const { error } = await db.from("products").delete().eq("id", id);
-
-  if (error) {
-    message("productMsg", error.message, true);
-    return;
-  }
-
-  message("productMsg", "Produit supprimé.");
-  await loadProducts();
-};
-
-$("resetProduct")?.addEventListener("click", () => {
-  $("productForm")?.reset();
-  if ($("productId")) $("productId").value = "";
-  message("productMsg", "");
-});
-
-/* PROJETS */
+// ======================================================
+// PROJETS : AFFICHAGE
+// ======================================================
 
 async function loadProjects() {
   const container = $("projectList");
-  if (!container) return;
-
-  container.textContent = "Chargement des projets...";
 
   const { data, error } = await db
     .from("projects")
@@ -309,196 +538,244 @@ async function loadProjects() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    container.textContent = "Erreur : " + error.message;
+    container.innerHTML = `<p class="empty-state">Erreur : ${escapeHTML(error.message)}</p>`;
     return;
   }
 
-  currentProjects = data || [];
-
-  if (!currentProjects.length) {
-    container.textContent = "Aucun projet enregistré.";
+  if (!data || data.length === 0) {
+    container.innerHTML = `<p class="empty-state">Aucun projet enregistré.</p>`;
     return;
   }
 
-  container.innerHTML = currentProjects.map((p) => {
-    const images = Array.isArray(p.image_urls) ? p.image_urls : [];
+  container.innerHTML = data.map((project) => {
+    const images = project.image_urls || [];
 
     return `
-      <div class="item">
-        ${images[0] ? `<img src="${escapeHTML(images[0])}" alt="">` : ""}
-        <h3>${escapeHTML(p.title ?? p.Titre ?? "")}</h3>
-        <p>${escapeHTML(p.description ?? p.Description ?? "")}</p>
-        <p>${escapeHTML(p.location ?? p.Emplacement ?? "")}</p>
-        <p>${p.is_published ? "Publié" : "Non publié"}</p>
-        <button type="button" onclick="editProject('${p.id}')">Modifier</button>
-        <button type="button" class="secondary" onclick="deleteProject('${p.id}')">Supprimer</button>
-      </div>
+      <article class="admin-item">
+        ${imageHTML(images[0], project.title)}
+
+        <h3>${escapeHTML(project.title)}</h3>
+
+        <p>${escapeHTML(project.category || "")}</p>
+        <p>${escapeHTML(project.location || "")}</p>
+        <p>${escapeHTML(project.description || "Sans description")}</p>
+        <p>${images.length} photo(s) enregistrée(s)</p>
+
+        <span class="status ${project.is_published ? "published" : "pending"}">
+          ${project.is_published ? "Publié" : "Non publié"}
+        </span>
+
+        <div class="actions">
+          <button class="btn btn-secondary" data-edit-project="${escapeHTML(project.id)}">
+            Modifier
+          </button>
+
+          <button class="btn btn-danger" data-delete-project="${escapeHTML(project.id)}">
+            Supprimer
+          </button>
+        </div>
+      </article>
     `;
   }).join("");
+
+  container.querySelectorAll("[data-edit-project]").forEach((button) => {
+    button.addEventListener("click", () => {
+      editProject(data.find((item) => item.id === button.dataset.editProject));
+    });
+  });
+
+  container.querySelectorAll("[data-delete-project]").forEach((button) => {
+    button.addEventListener("click", () => {
+      deleteProject(button.dataset.deleteProject);
+    });
+  });
 }
 
-function projectIdField() {
-  let field = $("projectId");
+function editProject(project) {
+  if (!project) return;
 
-  if (!field && $("projectForm")) {
-    field = document.createElement("input");
-    field.type = "hidden";
-    field.id = "projectId";
-    $("projectForm").prepend(field);
-  }
+  $("projectId").value = project.id;
+  $("projectTitle").value = project.title || "";
+  $("projectLocation").value = project.location || "";
+  $("projectCategory").value = project.category || "";
+  $("projectDesc").value = project.description || "";
+  $("projectPublished").checked = Boolean(project.is_published);
 
-  return field;
+  currentProjectImages = project.image_urls || [];
+
+  showMessage(
+    "projectMsg",
+    `Modification de « ${project.title} ». Les nouvelles photos seront ajoutées aux anciennes.`
+  );
+
+  $("projectsPanel").scrollIntoView({ behavior: "smooth" });
 }
 
-$("projectForm")?.addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function deleteProject(id) {
+  if (!confirm("Voulez-vous vraiment supprimer ce projet ?")) return;
 
-  const title = $("projectTitle")?.value.trim();
-
-  if (!title) {
-    message("projectMsg", "Le titre du projet est obligatoire.", true);
-    return;
-  }
-
-  message("projectMsg", "Enregistrement du projet...");
-
-  try {
-    const id = projectIdField()?.value;
-    const oldProject = currentProjects.find((p) => p.id === id);
-
-    let images = oldProject?.image_urls || [];
-    const file = $("projectImage")?.files?.[0];
-
-    if (file) {
-      const url = await uploadPhoto(file, "projets");
-      images = [url];
-    }
-
-    const project = {
-      title,
-      description: $("projectDesc")?.value.trim() || "",
-      location: $("projectLocation")?.value.trim() || oldProject?.location || "",
-      category: $("projectCategory")?.value.trim() || oldProject?.category || "",
-      image_urls: images,
-      is_published: $("projectPublished")?.checked ?? true
-    };
-
-    let result;
-
-    if (id) {
-      result = await db.from("projects").update(project).eq("id", id);
-    } else {
-      result = await db.from("projects").insert(project);
-    }
-
-    if (result.error) throw result.error;
-
-    message("projectMsg", "Projet enregistré avec succès.");
-    $("projectForm").reset();
-    if (projectIdField()) projectIdField().value = "";
-    await loadProjects();
-
-  } catch (error) {
-    message("projectMsg", "Erreur : " + error.message, true);
-  }
-});
-
-window.editProject = function(id) {
-  const p = currentProjects.find((item) => item.id === id);
-  if (!p) return;
-
-  projectIdField().value = p.id;
-  $("projectTitle").value = p.title ?? p.Titre ?? "";
-  $("projectDesc").value = p.description ?? p.Description ?? "";
-
-  if ($("projectLocation")) {
-    $("projectLocation").value = p.location ?? p.Emplacement ?? "";
-  }
-
-  if ($("projectCategory")) {
-    $("projectCategory").value = p.category ?? p.Catégorie ?? "";
-  }
-
-  if ($("projectPublished")) {
-    $("projectPublished").checked = !!p.is_published;
-  }
-
-  message("projectMsg", "Projet chargé. Tu peux le modifier.");
-  $("projectForm").scrollIntoView({ behavior: "smooth" });
-};
-
-window.deleteProject = async function(id) {
-  if (!confirm("Supprimer définitivement ce projet ?")) return;
-
-  const { error } = await db.from("projects").delete().eq("id", id);
+  const { error } = await db
+    .from("projects")
+    .delete()
+    .eq("id", id);
 
   if (error) {
-    message("projectMsg", error.message, true);
+    alert("Erreur : " + error.message);
     return;
   }
 
-  message("projectMsg", "Projet supprimé.");
   await loadProjects();
-};
-
-/* AUTRES RUBRIQUES */
-
-async function loadOtherSections() {
-  await loadSimpleList(
-    "supplier_applications",
-    "suppliers",
-    ["company_name", "contact_name", "email", "telephone", "adresse", "message"]
-  );
-
-  await loadSimpleList(
-    "contact_messages",
-    "inquiries",
-    ["name", "email", "phone", "subject", "message"]
-  );
-
-  await loadSimpleList(
-    "testimonials",
-    "reviews",
-    ["customer_name", "content", "rating"]
-  );
 }
 
-async function loadSimpleList(table, elementId, fields) {
-  const container = $(elementId);
-  if (!container) return;
+// ======================================================
+// CANDIDATURES FOURNISSEURS
+// ======================================================
+
+async function loadSuppliers() {
+  const container = $("suppliers");
 
   const { data, error } = await db
-    .from(table)
+    .from("supplier_applications")
     .select("*")
-    .order("created_at", { ascending: false })
-    .limit(50);
+    .order("created_at", { ascending: false });
 
   if (error) {
-    container.textContent = "Consultation non autorisée ou erreur : " + error.message;
+    container.innerHTML = `<p class="empty-state">Erreur : ${escapeHTML(error.message)}</p>`;
     return;
   }
 
-  if (!data?.length) {
-    container.textContent = "Aucun élément enregistré.";
+  if (!data || data.length === 0) {
+    container.innerHTML = `<p class="empty-state">Aucune candidature reçue.</p>`;
     return;
   }
 
   container.innerHTML = data.map((item) => `
-    <div class="item">
-      ${fields.map((field) => item[field] ? `
-        <p><strong>${escapeHTML(field)} :</strong>
-        ${escapeHTML(item[field])}</p>
-      ` : "").join("")}
-    </div>
+    <article class="admin-item">
+      <h3>${escapeHTML(item.company_name)}</h3>
+      <p><strong>Contact :</strong> ${escapeHTML(item.contact_name)}</p>
+      <p><strong>E-mail :</strong> ${escapeHTML(item.email)}</p>
+      <p><strong>Téléphone :</strong> ${escapeHTML(item.telephone)}</p>
+      <p><strong>Adresse :</strong> ${escapeHTML(item.adresse)}</p>
+      <p>${escapeHTML(item.message || "")}</p>
+      <p class="small-note">Reçu le ${formatDate(item.created_at)}</p>
+    </article>
   `).join("");
 }
 
-/* RESTAURATION DE SESSION */
+// ======================================================
+// MESSAGES CLIENTS
+// ======================================================
 
-db.auth.onAuthStateChange((_event, session) => {
-  showApp(session);
+async function loadMessages() {
+  const container = $("inquiries");
+
+  const { data, error } = await db
+    .from("contact_messages")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<p class="empty-state">Erreur : ${escapeHTML(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = `<p class="empty-state">Aucun message reçu.</p>`;
+    return;
+  }
+
+  container.innerHTML = data.map((item) => `
+    <article class="admin-item">
+      <h3>${escapeHTML(item.subject || "Message sans objet")}</h3>
+      <p><strong>Nom :</strong> ${escapeHTML(item.name)}</p>
+      <p><strong>E-mail :</strong> ${escapeHTML(item.email)}</p>
+      <p><strong>Téléphone :</strong> ${escapeHTML(item.phone)}</p>
+      <p>${escapeHTML(item.message)}</p>
+      <p class="small-note">Reçu le ${formatDate(item.created_at)}</p>
+    </article>
+  `).join("");
+}
+
+// ======================================================
+// TÉMOIGNAGES : AFFICHAGE ET MODÉRATION
+// ======================================================
+
+async function loadTestimonials() {
+  const container = $("reviews");
+
+  const { data, error } = await db
+    .from("testimonials")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<p class="empty-state">Erreur : ${escapeHTML(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = `<p class="empty-state">Aucun témoignage reçu.</p>`;
+    return;
+  }
+
+  container.innerHTML = data.map((item) => {
+    const approved = Boolean(item.is_approved);
+
+    return `
+      <article class="admin-item">
+        <h3>${escapeHTML(item.customer_name)}</h3>
+
+        <p>${escapeHTML(item.content)}</p>
+
+        <p>Note : ${Number(item.rating || 0)} / 5</p>
+
+        <span class="status ${approved ? "approved" : "pending"}">
+          ${approved ? "Approuvé" : "En attente de validation"}
+        </span>
+
+        <div class="actions">
+          ${
+            approved
+              ? `<button class="btn btn-secondary" data-review-action="reject" data-review-id="${escapeHTML(item.id)}">Retirer du site</button>`
+              : `<button class="btn btn-success" data-review-action="approve" data-review-id="${escapeHTML(item.id)}">Approuver</button>`
+          }
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  container.querySelectorAll("[data-review-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      updateTestimonial(
+        button.dataset.reviewId,
+        button.dataset.reviewAction === "approve"
+      );
+    });
+  });
+}
+
+async function updateTestimonial(id, approved) {
+  const { error } = await db
+    .from("testimonials")
+    .update({ is_approved: approved })
+    .eq("id", id);
+
+  if (error) {
+    alert("Erreur lors de la mise à jour : " + error.message);
+    return;
+  }
+
+  await loadTestimonials();
+}
+
+// ======================================================
+// DÉMARRAGE
+// ======================================================
+
+db.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT" || !session) {
+    showLogin();
+  }
 });
 
-db.auth.getSession().then(({ data }) => {
-  showApp(data.session);
-});
+checkAdminSession();
